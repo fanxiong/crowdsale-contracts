@@ -1,0 +1,34 @@
+{
+  "name": "@databrokerdao/crowdsale-contracts",
+  "version": "1.0.0",
+  "description": "The crowdsale and token contracts for DataBroker DAO",
+  "main": "truffle.js",
+  "repository": "https://github.com/DataBrokerDAO/crowdsale-contracts.git",
+  "author": "Roderik van der Veer",
+  "license": "MIT",
+  "scripts": {
+    "test": "solidity-coverage",
+    "watch": "nodemon --watch . --exec truffle test"
+  },
+  "dependencies": {
+    "minimetoken": "^0.1.7",
+    "zeppelin-solidity": "^1.2.0"
+  },
+  "devDependencies": {
+    "babel-polyfill": "^6.23.0",
+    "babel-preset-env": "^1.6.0",
+    "babel-register": "^6.24.1",
+    "eslint-config-standard": "^10.2.1",
+    "eslint-plugin-import": "^2.7.0",
+    "eslint-plugin-node": "^5.1.1",
+    "eslint-plugin-promise": "^3.5.0",
+    "eslint-plugin-standard": "^3.0.1",
+    "ethereumjs-testrpc-sc": "^4.0.1",
+    "moment": "^2.18.1",
+    "nodemon": "^1.11.0",
+    "solidity-coverage": "^0.2.1",
+    "solium": "^0.5.4",
+    "truffle": "^3.4.7",
+    "truffle-hdwallet-provider": "^0.0.3"
+  }
+}
