@@ -14,8 +14,8 @@ contract EarlyTokenSale is TokenController, Controlled {
     uint256 public endFundingTime;
     
     // 15% of tokens hard cap, at 1200 tokens per ETH
-    // 225,000,000*0.15 => 33,750,000 / 1200 => 28,125 ETH => 28,125,000,000,000,000,000,000 wei
-    uint256 constant public maximumFunding = 28125000000000000000000;
+    // 225,000,000*0.15 => 33,750,000 / 1200 => 28,125 ETH
+    uint256 constant public maximumFunding = 28125 ether;
     uint256 constant public tokensPerEther = 1200; 
     uint256 constant public maxGasPrice = 50000000000;
     
