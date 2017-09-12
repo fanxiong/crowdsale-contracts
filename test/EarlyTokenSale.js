@@ -4,11 +4,14 @@ import {
   getSaleDuringSale,
 } from './helpers/setup';
 import { assertOpcode } from './helpers/assertOpcode';
+import { blocktravel } from './helpers/timetravel';
 
 const MiniMeTokenFactory = artifacts.require('MiniMeTokenFactory');
+const MiniMeToken = artifacts.require('MiniMeToken');
 const EarlyTokenSale = artifacts.require('EarlyTokenSale');
 const MultiSigWallet = artifacts.require('MultiSigWallet');
 const DataBrokerDaoToken = artifacts.require('DataBrokerDaoToken');
+const FailingMockToken = artifacts.require('FailingMockToken');
 
 // testrpc -m "melt object asset crash now another usual cup pool during mad powder"\
 //
@@ -45,6 +48,8 @@ const DataBrokerDaoToken = artifacts.require('DataBrokerDaoToken');
 // Base HD Path:  m/44'/60'/0'/0/{account_index}
 
 contract('EarlyTokenSale', function(accounts) {
+  blocktravel(100, accounts);
+
   it('should fail when trying to send ether before the sale', async function() {
     const { sale, token, wallet } = await getSaleBeforeSale(accounts);
     try {
@@ -73,7 +78,7 @@ contract('EarlyTokenSale', function(accounts) {
       from: accounts[0],
       to: sale.address,
       value: web3.toWei(1, 'ether'),
-      gas: 200000,
+      gas: 300000,
     });
     const totalSupply = await token.totalSupply();
     assert.equal(totalSupply.toNumber(), web3.toWei(1200, 'ether'));
@@ -120,5 +125,108 @@ contract('EarlyTokenSale', function(accounts) {
       balance0.toNumber(),
       56250000000000000000000000 + 22500000000000000000000000
     );
+  });
+
+  it('should fail when trying to send ether when the sale is pauzed', async function() {
+    const { sale, token, wallet } = await getSaleDuringSale(accounts);
+    await sale.pauseContribution();
+    try {
+      web3.eth.sendTransaction({
+        from: accounts[0],
+        to: sale.address,
+        value: web3.toWei(1, 'ether'),
+        gas: 200000,
+      });
+    } catch (error) {
+      assertOpcode(error);
+    }
+    const totalSupply = await token.totalSupply();
+    assert.equal(totalSupply.toNumber(), 0);
+    const totalCollected = await sale.totalCollected();
+    assert.equal(totalCollected.toNumber(), 0);
+    const balance0 = await token.balanceOf(accounts[0]);
+    assert.equal(balance0.toNumber(), 0);
+    const walletBalance = web3.eth.getBalance(wallet.address);
+    assert.equal(walletBalance.toNumber(), 0);
+  });
+
+  it('should work when trying to send ether when the sale is unpauzed', async function() {
+    const { sale, token, wallet } = await getSaleDuringSale(accounts);
+    await sale.pauseContribution();
+    await sale.resumeContribution();
+    web3.eth.sendTransaction({
+      from: accounts[0],
+      to: sale.address,
+      value: web3.toWei(1, 'ether'),
+      gas: 300000,
+    });
+    const totalSupply = await token.totalSupply();
+    assert.equal(totalSupply.toNumber(), web3.toWei(1200, 'ether'));
+    const totalCollected = await sale.totalCollected();
+    assert.equal(totalCollected.toNumber(), web3.toWei(1, 'ether'));
+    const balance0 = await token.balanceOf(accounts[0]);
+    assert.equal(balance0.toNumber(), web3.toWei(1200, 'ether'));
+    const walletBalance = web3.eth.getBalance(wallet.address);
+    assert.equal(walletBalance.toNumber(), web3.toWei(1, 'ether'));
+  });
+
+  it('should be able to get mistakenly sent ether', async function() {
+    const { sale, token, wallet } = await getSaleDuringSale(accounts);
+    await sale.claimTokens(0);
+  });
+
+  it('should be able to get mistakenly sent tokens', async function() {
+    const { sale, token, wallet } = await getSaleDuringSale(accounts);
+    const newFactory = await MiniMeTokenFactory.new();
+    const newToken = await MiniMeToken.new(
+      newFactory.address,
+      0x0,
+      0,
+      'Some Token',
+      18,
+      'SOME',
+      true
+    );
+
+    await sale.claimTokens(newToken.address);
+  });
+
+  it('should fail when the token generation fails', async function() {
+    const factory = await MiniMeTokenFactory.new();
+    const wallet = await MultiSigWallet.new(
+      [
+        accounts[7], // account_index: 7
+        accounts[8], // account_index: 8
+        accounts[9], // account_index: 9
+      ],
+      2
+    );
+    const token = await FailingMockToken.new(factory.address);
+    const { timestamp } = web3.eth.getBlock('latest');
+    const sale = await EarlyTokenSale.new(
+      timestamp - 3600,
+      timestamp + 3600,
+      wallet.address,
+      token.address
+    );
+    await token.changeController(sale.address);
+    try {
+      web3.eth.sendTransaction({
+        from: accounts[0],
+        to: sale.address,
+        value: web3.toWei(1, 'ether'),
+        gas: 300000,
+      });
+    } catch (error) {
+      assertOpcode(error);
+    }
+    const totalSupply = await token.totalSupply();
+    assert.equal(totalSupply.toNumber(), 0);
+    const totalCollected = await sale.totalCollected();
+    assert.equal(totalCollected.toNumber(), 0);
+    const balance0 = await token.balanceOf(accounts[0]);
+    assert.equal(balance0.toNumber(), 0);
+    const walletBalance = web3.eth.getBalance(wallet.address);
+    assert.equal(walletBalance.toNumber(), 0);
   });
 });
