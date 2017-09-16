@@ -50,31 +50,9 @@ const FailingMockToken = artifacts.require('FailingMockToken');
 contract('EarlyTokenSale', function(accounts) {
   blocktravel(100, accounts);
 
-  it('should fail when trying to send ether before the sale', async function() {
+  it('should work when trying to send ether before the sale by the controller', async function() {
     const { sale, token, wallet } = await getSaleBeforeSale(accounts);
-    try {
-      web3.eth.sendTransaction({
-        from: accounts[0],
-        to: sale.address,
-        value: web3.toWei(1, 'ether'),
-        gas: 200000,
-      });
-    } catch (error) {
-      assertOpcode(error);
-    }
-    const totalSupply = await token.totalSupply();
-    assert.equal(totalSupply.toNumber(), 0);
-    const totalCollected = await sale.totalCollected();
-    assert.equal(totalCollected.toNumber(), 0);
-    const balance0 = await token.balanceOf(accounts[0]);
-    assert.equal(balance0.toNumber(), 0);
-    const walletBalance = web3.eth.getBalance(wallet.address);
-    assert.equal(walletBalance.toNumber(), 0);
-  });
-
-  it('should work when trying to send ether during the sale', async function() {
-    const { sale, token, wallet } = await getSaleDuringSale(accounts);
-    web3.eth.sendTransaction({
+    await web3.eth.sendTransaction({
       from: accounts[0],
       to: sale.address,
       value: web3.toWei(1, 'ether'),
@@ -90,14 +68,94 @@ contract('EarlyTokenSale', function(accounts) {
     assert.equal(walletBalance.toNumber(), web3.toWei(1, 'ether'));
   });
 
+  it('should fail when trying to send ether before the sale', async function() {
+    const { sale, token, wallet } = await getSaleBeforeSale(accounts);
+    try {
+      await web3.eth.sendTransaction({
+        from: accounts[1],
+        to: sale.address,
+        value: web3.toWei(1, 'ether'),
+        gas: 300000,
+      });
+    } catch (error) {
+      assertOpcode(error);
+    }
+    const totalSupply = await token.totalSupply();
+    assert.equal(totalSupply.toNumber(), 0);
+    const totalCollected = await sale.totalCollected();
+    assert.equal(totalCollected.toNumber(), 0);
+    const balance0 = await token.balanceOf(accounts[1]);
+    assert.equal(balance0.toNumber(), 0);
+    const walletBalance = web3.eth.getBalance(wallet.address);
+    assert.equal(walletBalance.toNumber(), 0);
+  });
+
+  it('should work when trying to send ether during the sale by the controller', async function() {
+    const { sale, token, wallet } = await getSaleDuringSale(accounts);
+    await web3.eth.sendTransaction({
+      from: accounts[0],
+      to: sale.address,
+      value: web3.toWei(1, 'ether'),
+      gas: 300000,
+    });
+    const totalSupply = await token.totalSupply();
+    assert.equal(totalSupply.toNumber(), web3.toWei(1200, 'ether'));
+    const totalCollected = await sale.totalCollected();
+    assert.equal(totalCollected.toNumber(), web3.toWei(1, 'ether'));
+    const balance0 = await token.balanceOf(accounts[0]);
+    assert.equal(balance0.toNumber(), web3.toWei(1200, 'ether'));
+    const walletBalance = web3.eth.getBalance(wallet.address);
+    assert.equal(walletBalance.toNumber(), web3.toWei(1, 'ether'));
+  });
+
+  it('should work when trying to send ether during the sale', async function() {
+    const { sale, token, wallet } = await getSaleDuringSale(accounts);
+    await web3.eth.sendTransaction({
+      from: accounts[1],
+      to: sale.address,
+      value: web3.toWei(1, 'ether'),
+      gas: 300000,
+    });
+    const totalSupply = await token.totalSupply();
+    assert.equal(totalSupply.toNumber(), web3.toWei(1200, 'ether'));
+    const totalCollected = await sale.totalCollected();
+    assert.equal(totalCollected.toNumber(), web3.toWei(1, 'ether'));
+    const balance0 = await token.balanceOf(accounts[1]);
+    assert.equal(balance0.toNumber(), web3.toWei(1200, 'ether'));
+    const walletBalance = web3.eth.getBalance(wallet.address);
+    assert.equal(walletBalance.toNumber(), web3.toWei(1, 'ether'));
+  });
+
   it('should fail when trying to send ether after the sale', async function() {
     const { sale, token, wallet } = await getSaleAfterSale(accounts);
     try {
-      web3.eth.sendTransaction({
+      await web3.eth.sendTransaction({
+        from: accounts[1],
+        to: sale.address,
+        value: web3.toWei(1, 'ether'),
+        gas: 300000,
+      });
+    } catch (error) {
+      assertOpcode(error);
+    }
+    const totalSupply = await token.totalSupply();
+    assert.equal(totalSupply.toNumber(), 0);
+    const totalCollected = await sale.totalCollected();
+    assert.equal(totalCollected.toNumber(), 0);
+    const balance0 = await token.balanceOf(accounts[0]);
+    assert.equal(balance0.toNumber(), 0);
+    const walletBalance = web3.eth.getBalance(wallet.address);
+    assert.equal(walletBalance.toNumber(), 0);
+  });
+
+  it('should fail when trying to send ether after the sale by the controller', async function() {
+    const { sale, token, wallet } = await getSaleAfterSale(accounts);
+    try {
+      await web3.eth.sendTransaction({
         from: accounts[0],
         to: sale.address,
         value: web3.toWei(1, 'ether'),
-        gas: 200000,
+        gas: 300000,
       });
     } catch (error) {
       assertOpcode(error);
@@ -175,7 +233,7 @@ contract('EarlyTokenSale', function(accounts) {
     const { sale, token, wallet } = await getSaleDuringSale(accounts);
     await sale.pauseContribution();
     await sale.resumeContribution();
-    web3.eth.sendTransaction({
+    await web3.eth.sendTransaction({
       from: accounts[0],
       to: sale.address,
       value: web3.toWei(1, 'ether'),
@@ -232,7 +290,7 @@ contract('EarlyTokenSale', function(accounts) {
     );
     await token.changeController(sale.address);
     try {
-      web3.eth.sendTransaction({
+      await web3.eth.sendTransaction({
         from: accounts[0],
         to: sale.address,
         value: web3.toWei(1, 'ether'),

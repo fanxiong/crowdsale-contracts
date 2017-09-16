@@ -113,7 +113,9 @@ contract EarlyTokenSale is TokenController, Controlled {
         lastCallBlock[msg.sender] = getBlockNumber();
 
         // First check that the EarlyTokenSale is allowed to receive this donation
-        require(startFundingTime <= now);
+        if (msg.sender != controller) {
+            require(startFundingTime <= now);
+        }
         require(endFundingTime > now);
         require(tokenContract.controller() != 0);
         require(msg.value > 0);
