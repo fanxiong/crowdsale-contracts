@@ -8,8 +8,9 @@ const MultiSigWalletWithDailyLimit = artifacts.require(
 const DataBrokerDaoToken = artifacts.require('DataBrokerDaoToken');
 
 async function performMigration(deployer, network) {
-  // Deploy the MiniMeTokenFactory, this is the factory contract that can create clones of the token
-  await deployer.deploy(MiniMeTokenFactory);
+  const prevEarlyTokenSale = await EarlyTokenSale.at(
+    '0xe2db27128bd2e4cf54e3a4992192f8f17ef88e02'
+  );
 
   // Deploy the MultiSigWallet that will collect the ether
   await deployer.deploy(
@@ -23,9 +24,6 @@ async function performMigration(deployer, network) {
     2,
     web3.toWei(1000, 'ether')
   );
-
-  // Deploy the actual DataBrokerDaoToken, the controller of the token is the one deploying. (Roderik)
-  await deployer.deploy(DataBrokerDaoToken, MiniMeTokenFactory.address);
 
   if (network === 'mainnet') {
     // Deploy the Early Token Sale, again owned by the one deploying (Roderik)
@@ -49,9 +47,8 @@ async function performMigration(deployer, network) {
     );
   }
 
-  // Set the controller of the token to the early token sale
-  const DeployedDataBrokerDaoToken = await DataBrokerDaoToken.deployed();
-  DeployedDataBrokerDaoToken.changeController(EarlyTokenSale.address);
+  // Change the controller of the token to the early token sale
+  prevEarlyTokenSale.changeTokenController(EarlyTokenSale.address);
 }
 
 module.exports = function(deployer, network) {

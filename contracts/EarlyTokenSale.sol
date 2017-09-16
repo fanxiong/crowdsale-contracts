@@ -133,6 +133,10 @@ contract EarlyTokenSale is TokenController, Controlled {
         return true;
     }
 
+    function changeTokenController(address _newController) onlyController {
+        tokenContract.changeController(_newController);
+    }
+
     /// @dev Internal function to determine if an address is a contract
     /// @param _addr The address being queried
     /// @return True if `_addr` is a contract
