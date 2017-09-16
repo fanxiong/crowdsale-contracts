@@ -24,5 +24,9 @@ module.exports = {
       provider: new HDWalletProvider(mnemonic, 'https://rinkeby.infura.io/'),
       network_id: '4',
     },
+    mainnet: {
+      provider: new HDWalletProvider(mnemonic, 'https://mainnet.infura.io/'),
+      network_id: '1',
+    },
   },
 };
