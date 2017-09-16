@@ -33,6 +33,7 @@ contract EarlyTokenSale is TokenController, Controlled {
     address public vaultAddress;
 
     bool public paused;
+    bool public finalized = false;
 
     /// @param _startFundingTime The UNIX time that the EarlyTokenSale will be able to start receiving funds
     /// @param _endFundingTime   The UNIX time that the EarlyTokenSale will stop being able to receive funds
@@ -147,16 +148,16 @@ contract EarlyTokenSale is TokenController, Controlled {
     /// @notice `finalizeSale()` ends the EarlyTokenSale. It will generate the platform and team tokens
     ///  and set the controller to the referral fee contract.
     /// @dev `finalizeSale()` can only be called after the end of the funding period or if the maximum amount is raised.
-    function finalizeSale() {
+    function finalizeSale() onlyController {
         require(now > endFundingTime || totalCollected >= maximumFunding);
-        uint256 platformTokens = 56250000000000000000000000;      
-        if (!tokenContract.generateTokens(vaultAddress, platformTokens)) {
-            revert();
-        } 
-        uint256 teamTokens = 22500000000000000000000000;
-        if (!tokenContract.generateTokens(vaultAddress, teamTokens)) { 
+        require(!finalized);
+
+        uint256 reservedTokens = 225000000 * 0.35 * 10**18;      
+        if (!tokenContract.generateTokens(vaultAddress, reservedTokens)) {
             revert();
         }
+
+        finalized = true;
     }
 
 //////////

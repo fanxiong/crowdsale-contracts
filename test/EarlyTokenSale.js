@@ -116,15 +116,36 @@ contract('EarlyTokenSale', function(accounts) {
     const { sale, token, wallet } = await getSaleAfterSale(accounts);
     await sale.finalizeSale();
     const totalSupply = await token.totalSupply();
-    assert.equal(
-      totalSupply.toNumber(),
-      56250000000000000000000000 + 22500000000000000000000000
-    );
+    assert.equal(totalSupply.toNumber(), 225000000 * 0.35 * 10 ** 18);
     const balance0 = await token.balanceOf(wallet.address);
-    assert.equal(
-      balance0.toNumber(),
-      56250000000000000000000000 + 22500000000000000000000000
-    );
+    assert.equal(balance0.toNumber(), 225000000 * 0.35 * 10 ** 18);
+  });
+
+  it('should not be able to finalise twice after the sale', async function() {
+    const { sale, token, wallet } = await getSaleAfterSale(accounts);
+    await sale.finalizeSale();
+    try {
+      await sale.finalizeSale();
+    } catch (error) {
+      assertOpcode(error);
+    }
+    const totalSupply = await token.totalSupply();
+    assert.equal(totalSupply.toNumber(), 225000000 * 0.35 * 10 ** 18);
+    const balance0 = await token.balanceOf(wallet.address);
+    assert.equal(balance0.toNumber(), 225000000 * 0.35 * 10 ** 18);
+  });
+
+  it('should not be able to finalise by anyone', async function() {
+    const { sale, token, wallet } = await getSaleAfterSale(accounts);
+    try {
+      await sale.finalizeSale({ from: accounts[5] });
+    } catch (error) {
+      assertOpcode(error);
+    }
+    const totalSupply = await token.totalSupply();
+    assert.equal(totalSupply.toNumber(), 0);
+    const balance0 = await token.balanceOf(wallet.address);
+    assert.equal(balance0.toNumber(), 0);
   });
 
   it('should fail when trying to send ether when the sale is pauzed', async function() {
