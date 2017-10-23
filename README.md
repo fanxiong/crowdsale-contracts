@@ -1,4 +1,4 @@
-# DataBrokerDAO crowdsale contracts [![Build Status](https://travis-ci.org/DataBrokerDAO/crowdsale-contracts.svg?branch=master)](https://travis-ci.org/DataBrokerDAO/crowdsale-contracts)
+# DataBrokerDAO crowdsale contracts [![Build Status](https://travis-ci.org/DataBrokerDAO/crowdsale-contracts.svg?branch=master)](https://travis-ci.org/DataBrokerDAO/crowdsale-contracts).
 
 ## 1. The DATA token is an EIP/ERC20 compliant MiniMe token
 The DATA token is an EIP/ERC20 MiniMe Token, based on the work of the Giveth team. It is ERC20 compliant and adds two useful features.
@@ -34,8 +34,8 @@ The code for all these contract functions is available at https://github.com/Dat
 
 ## 6. Join the conversation
 
-* Learn more about DataBroker DAO at — https://databrokerdao.com 
-* Join Slack channel at — https://slack.databrokerdao.com/ 
-* Join DataBroker DAO Telegram channel at — https://t.me/databrokerdao 
-* Find DataBroker DAO on Facebook at — https://www.facebook.com/DataBrokerDAO/ 
+* Learn more about DataBroker DAO at — https://databrokerdao.com
+* Join Slack channel at — https://slack.databrokerdao.com/
+* Join DataBroker DAO Telegram channel at — https://t.me/databrokerdao
+* Find DataBroker DAO on Facebook at — https://www.facebook.com/DataBrokerDAO/
 * Follow DataBroker DAO on Twitter at — https://twitter.com/DataBrokerDAO
