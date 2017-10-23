@@ -3,4 +3,5 @@
 /yarn-error.log
 /coverage.json
 /coverageEnv
+/build
 /.node-xmlhttprequest-sync-10954

@@ -1,3 +1,4 @@
+//*
 import {
   getSaleBeforeSale,
   getSaleAfterSale,
@@ -6,8 +7,7 @@ import {
 import { assertOpcode } from './helpers/assertOpcode';
 import { blocktravel } from './helpers/timetravel';
 
-const MiniMeTokenFactory = artifacts.require('MiniMeTokenFactory');
-const MiniMeToken = artifacts.require('MiniMeToken');
+const TNBToken = artifacts.require('TNBToken');
 const EarlyTokenSale = artifacts.require('EarlyTokenSale');
 const MultiSigWallet = artifacts.require('MultiSigWallet');
 const DataBrokerDaoToken = artifacts.require('DataBrokerDaoToken');
@@ -18,29 +18,29 @@ const FailingMockToken = artifacts.require('FailingMockToken');
 //
 // Available Accounts
 // ==================
-// (0) 0x9957e37bcdb97c7e7803e9b95f59997b31497e34 <-- deployer
-// (1) 0x51623e40a587b8b5d1df053cde68d0439e62c39f
-// (2) 0xabb2c59607787a047a64c00f02bb808fac516ecb
-// (3) 0xb2f780e60887bf2f1c351387d837aa0c81d52612
-// (4) 0x77c41d1b2cf184c4b2842008fa881d1c2a204ddc
-// (5) 0x93ad44b5369e04f69299ca17e1da48d3c5891a0f
-// (6) 0x4dd53b45fcdc9a8892f7c926cb01032e727fed65
-// (7) 0x00a63dd72e4ecf4db8395ac5404d6b7df94e6bf2 <-- multisig owner 1
-// (8) 0xf598802b54da5e7f1e18a0f3d801081d1190bad9 <-- multisig owner 2
-// (9) 0x9f0d9c5339f92f6e592bdc0c991c4bfd0bb39882 <-- multisig owner 3
-
+// (0) 0xce4c68a6347e78fb853ed14e2bb2910cabfe00a7 <-- deployer
+// (1) 0x423d8ed622ef2b48fa05629e1314812f66c5e80f
+// (2) 0xd62c96cd87dae2933cf2b7fafbcb757a6c84ad99
+// (3) 0x5a7088e57a21d581c95930ce4b3dbb9ab097b23e
+// (4) 0xd64bd119d72b3906d500bddf8295efc0d8301a93
+// (5) 0x3de8bdb2597ab29e289a34c42602418bfcd2962b
+// (6) 0xc08929b891afa58f6c0ca57dddd25224be5dc01b
+// (7) 0x6a30763e7406e0e9c8ed6326f5e3fe0ef82d7d40 <-- multisig owner 1
+// (8) 0xaf46e99cfc75068ea255f995eb5efbc55a7bedc7 <-- multisig owner 2
+// (9) 0xbf88b620ef8eef56a66fcef17a8fbafc8bf0dda2 <-- multisig owner 3
+// 
 // Private Keys
 // ==================
-// (0) c122f263b2e611d414a95ec041c99b585acc22a865b001652602895687afb7b4
-// (1) 654f9a64d24c734ad43ceda2e1f66e52662074bd84e07ab892f032e09d39ce6e
-// (2) bffa85fdac3e2a4789ab84828849860c798bd88eff48058a962e1c2791a1e954
-// (3) 48dcf7598ce54d4121d23dfdb80c66f0911675b6981290dc1d29082daa883995
-// (4) 8ed40615c224b3810d58d2106b14793b731422893e4a809288e0df587eaa0966
-// (5) 8d77b51f1472c64bb0eac9dc2b15f10122583f64a8ac1c1328affc95d60fbefc
-// (6) 574eeb2d1c75eb3305730f6840011feeb8b439a5e387d26a9eec9509f5569b97
-// (7) 90e4ad807017d22558739404cba442b1a8f6a5cf239eb44610a264394aaefc70
-// (8) b1d3ac849c1f453e4b1247fd920815c9ef5ed57a540be92017e3a2f6160e3766
-// (9) 8dc459c925553f943c4907766e740dbed7d8546e7d491d58299238d7b9641d49
+// (0) 5adc42d2a8afeea43ce06c2c33aca4bb6d48e44a0ce7703cfe93d0d37ee126f5
+// (1) 705b66458cb47ce0e73ae65c8403e05ea38ef7939a6024366e9359a466473799
+// (2) 491f68e633115c0dc0589d7a35c13c62b3bd5b50c2efb028d96c57a7a7bbe673
+// (3) aeb2e15acd14c5780e1568e922684358c980f532c4e474e74bfc4ea7b83be98c
+// (4) 298c721f290ac9788bd0099dc73c23e0f328747311849a5560081ff757837bfc
+// (5) 8bbf6dcafcfe58d28862fe9fb562111517f1a052c266a920c844f91aecff19e8
+// (6) 71a4698e445605cf3e479b3cf55b7bd84082bedda7cbf3edc1e9faab54613c5b
+// (7) 498971c17a7eb841cefae57ce87ac741b4f234b091713d0d26d0fc65e0d13740
+// (8) 37e49db778a5e759741d241ac83fe4cd904cd00fa29e056c5483125c6538d9fb
+// (9) 9b51e824255e11da621fb8e37e6620d6afe2cee5c3def54e4d219e533b5dbd2d
 
 // HD Wallet
 // ==================
@@ -60,7 +60,7 @@ contract('EarlyTokenSale', function(accounts) {
     });
     const totalSupply = await token.totalSupply();
     assert.equal(totalSupply.toNumber(), web3.toWei(1200, 'ether'));
-    const totalCollected = await sale.totalCollected();
+    const totalCollected = await sale.totalCollected(); //public 变量，直接调用，不使用call()
     assert.equal(totalCollected.toNumber(), web3.toWei(1, 'ether'));
     const balance0 = await token.balanceOf(accounts[0]);
     assert.equal(balance0.toNumber(), web3.toWei(1200, 'ether'));
@@ -256,11 +256,7 @@ contract('EarlyTokenSale', function(accounts) {
 
   it('should be able to get mistakenly sent tokens', async function() {
     const { sale, token, wallet } = await getSaleDuringSale(accounts);
-    const newFactory = await MiniMeTokenFactory.new();
-    const newToken = await MiniMeToken.new(
-      newFactory.address,
-      0x0,
-      0,
+    const newToken = await TNBToken.new(
       'Some Token',
       18,
       'SOME',
@@ -271,7 +267,6 @@ contract('EarlyTokenSale', function(accounts) {
   });
 
   it('should fail when the token generation fails', async function() {
-    const factory = await MiniMeTokenFactory.new();
     const wallet = await MultiSigWallet.new(
       [
         accounts[7], // account_index: 7
@@ -280,7 +275,7 @@ contract('EarlyTokenSale', function(accounts) {
       ],
       2
     );
-    const token = await FailingMockToken.new(factory.address);
+    const token = await FailingMockToken.new();
     const { timestamp } = web3.eth.getBlock('latest');
     const sale = await EarlyTokenSale.new(
       timestamp - 3600,
@@ -309,3 +304,5 @@ contract('EarlyTokenSale', function(accounts) {
     assert.equal(walletBalance.toNumber(), 0);
   });
 });
+//*/
+
