@@ -1,17 +1,14 @@
 
 pragma solidity ^0.4.15;
 
-import "../MiniMeToken.sol";
+import "../TNBToken.sol";
 
 
-contract FailingMockToken is MiniMeToken {  
+contract FailingMockToken is TNBToken {  
 
     bool second;
 
-    function FailingMockToken(address _tokenFactory, bool _second) MiniMeToken(   
-      _tokenFactory,
-      0x0,                    // no parent token
-      0,                      // no snapshot block number from parent
+    function FailingMockToken(bool _second) TNBToken(   
       "Failing Mock Token", // Token name
       18,                     // Decimals
       "MOCK",                 // Symbol

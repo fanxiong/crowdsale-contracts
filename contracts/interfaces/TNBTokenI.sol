@@ -4,7 +4,7 @@ import "./ERC20Token.sol";
 import "./Controlled.sol";
 
 
-contract MiniMeTokenI is ERC20Token, Controlled {
+contract TNBTokenI is ERC20Token, Controlled {
 
     string public name;                //The Token's name: e.g. DigixDAO Tokens
     uint8 public decimals;             //Number of decimals of the smallest unit
@@ -47,28 +47,6 @@ contract MiniMeTokenI is ERC20Token, Controlled {
     function totalSupplyAt(uint _blockNumber) constant returns(uint);
 
 ////////////////
-// Clone Token Method
-////////////////
-
-    /// @notice Creates a new clone token with the initial distribution being
-    ///  this token at `_snapshotBlock`
-    /// @param _cloneTokenName Name of the clone token
-    /// @param _cloneDecimalUnits Number of decimals of the smallest unit
-    /// @param _cloneTokenSymbol Symbol of the clone token
-    /// @param _snapshotBlock Block when the distribution of the parent token is
-    ///  copied to set the initial distribution of the new clone token;
-    ///  if the block is zero than the actual block, the current block is used
-    /// @param _transfersEnabled True if transfers are allowed in the clone
-    /// @return The address of the new MiniMeToken Contract
-    function createCloneToken(
-        string _cloneTokenName,
-        uint8 _cloneDecimalUnits,
-        string _cloneTokenSymbol,
-        uint _snapshotBlock,
-        bool _transfersEnabled
-    ) returns(address);
-
-////////////////
 // Generate and destroy tokens
 ////////////////
 
@@ -108,5 +86,4 @@ contract MiniMeTokenI is ERC20Token, Controlled {
 ////////////////
 
     event ClaimedTokens(address indexed _token, address indexed _controller, uint _amount);
-    event NewCloneToken(address indexed _cloneToken, uint _snapshotBlock);
 }

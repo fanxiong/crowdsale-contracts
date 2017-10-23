@@ -1,12 +1,11 @@
 import { timetravel } from './timetravel';
 
-const MiniMeTokenFactory = artifacts.require('MiniMeTokenFactory');
 const EarlyTokenSale = artifacts.require('EarlyTokenSale');
 const MultiSigWallet = artifacts.require('MultiSigWallet');
 const DataBrokerDaoToken = artifacts.require('DataBrokerDaoToken');
 
 export async function getSaleBeforeSale(accounts) {
-  const { factory, wallet, token } = await sharedSetup(accounts);
+  const { wallet, token } = await sharedSetup(accounts);
   const { timestamp } = web3.eth.getBlock('latest');
   const sale = await EarlyTokenSale.new(
     timestamp + 3600,
@@ -16,7 +15,6 @@ export async function getSaleBeforeSale(accounts) {
   );
   await token.changeController(sale.address);
   return {
-    factory,
     wallet,
     token,
     sale,
@@ -24,7 +22,7 @@ export async function getSaleBeforeSale(accounts) {
 }
 
 export async function getSaleAfterSale(accounts) {
-  const { factory, wallet, token } = await sharedSetup(accounts);
+  const { wallet, token } = await sharedSetup(accounts);
   const { timestamp } = web3.eth.getBlock('latest');
   const sale = await EarlyTokenSale.new(
     timestamp - 3600,
@@ -35,7 +33,6 @@ export async function getSaleAfterSale(accounts) {
   await token.changeController(sale.address);
   await timetravel(60);
   return {
-    factory,
     wallet,
     token,
     sale,
@@ -43,7 +40,7 @@ export async function getSaleAfterSale(accounts) {
 }
 
 export async function getSaleDuringSale(accounts) {
-  const { factory, wallet, token } = await sharedSetup(accounts);
+  const { wallet, token } = await sharedSetup(accounts);
   const { timestamp } = web3.eth.getBlock('latest');
   const sale = await EarlyTokenSale.new(
     timestamp - 3600,
@@ -53,7 +50,6 @@ export async function getSaleDuringSale(accounts) {
   );
   await token.changeController(sale.address);
   return {
-    factory,
     wallet,
     token,
     sale,
@@ -61,7 +57,6 @@ export async function getSaleDuringSale(accounts) {
 }
 
 export async function sharedSetup(accounts) {
-  const factory = await MiniMeTokenFactory.new();
   const wallet = await MultiSigWallet.new(
     [
       accounts[7], // account_index: 7
@@ -70,6 +65,6 @@ export async function sharedSetup(accounts) {
     ],
     2
   );
-  const token = await DataBrokerDaoToken.new(factory.address);
-  return { factory, wallet, token };
+  const token = await DataBrokerDaoToken.new();
+  return { wallet, token };
 }

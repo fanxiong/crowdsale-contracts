@@ -4,16 +4,16 @@
   "description": "The crowdsale and token contracts for DataBroker DAO",
   "main": "truffle.js",
   "repository": "https://github.com/DataBrokerDAO/crowdsale-contracts.git",
-  "author": "Roderik van der Veer",
+  "author": "Roderik van der Veer; fanxiong; David.jia",
   "license": "MIT",
   "scripts": {
     "test": "solidity-coverage",
     "watch": "nodemon --watch . --exec truffle test"
   },
   "dependencies": {
-    "bluebird": "^3.5.0",
+    "bluebird": "^3.5.1",
     "minimetoken": "^0.1.7",
-    "zeppelin-solidity": "^1.2.0"
+    "zeppelin-solidity": "^1.3.0"
   },
   "devDependencies": {
     "babel-polyfill": "^6.23.0",

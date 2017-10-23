@@ -1,6 +1,5 @@
 const Promise = require('bluebird');
 
-const MiniMeTokenFactory = artifacts.require('MiniMeTokenFactory');
 const EarlyTokenSale = artifacts.require('EarlyTokenSale');
 const MultiSigWalletWithDailyLimit = artifacts.require(
   'MultiSigWalletWithDailyLimit'
@@ -8,24 +7,21 @@ const MultiSigWalletWithDailyLimit = artifacts.require(
 const DataBrokerDaoToken = artifacts.require('DataBrokerDaoToken');
 
 async function performMigration(deployer, network) {
-  // Deploy the MiniMeTokenFactory, this is the factory contract that can create clones of the token
-  await deployer.deploy(MiniMeTokenFactory);
-
   // Deploy the MultiSigWallet that will collect the ether
   await deployer.deploy(
     MultiSigWalletWithDailyLimit,
     [
-      '0x52B8398551BB1d0BdC022355897508F658Ad42F8', // Roderik
-      '0xBa3e7453323e84A352892c7219Fe8C16FceB7Dd1', // Roderik 2, will be removed from the wallet after testing
-      '0x16D0af500dbEA4F7c934ee97eD8EBF190d648de1', // Matthew
-      '0x8A69583573b4F6a3Fd70b938DaFB0f61F3536692', // Jonathan
+      '0xce4c68a6347e78fb853ed14e2bb2910cabfe00a7', // Roderik
+      '0x423d8ed622ef2b48fa05629e1314812f66c5e80f', // Roderik 2, will be removed from the wallet after testing
+      '0xd62c96cd87dae2933cf2b7fafbcb757a6c84ad99', // Matthew
+      '0x5a7088e57a21d581c95930ce4b3dbb9ab097b23e', // Jonathan
     ],
     2,
     web3.toWei(1000, 'ether')
   );
 
   // Deploy the actual DataBrokerDaoToken, the controller of the token is the one deploying. (Roderik)
-  await deployer.deploy(DataBrokerDaoToken, MiniMeTokenFactory.address);
+  await deployer.deploy(DataBrokerDaoToken);
 
   if (network === 'mainnet') {
     // Deploy the Early Token Sale, again owned by the one deploying (Roderik)
@@ -52,6 +48,7 @@ async function performMigration(deployer, network) {
   // Set the controller of the token to the early token sale
   const DeployedDataBrokerDaoToken = await DataBrokerDaoToken.deployed();
   DeployedDataBrokerDaoToken.changeController(EarlyTokenSale.address);
+  console.info("EarlyTokenSale.address 1::", EarlyTokenSale.address)
 }
 
 module.exports = function(deployer, network) {

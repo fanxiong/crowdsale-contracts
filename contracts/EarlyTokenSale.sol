@@ -13,10 +13,10 @@ contract EarlyTokenSale is TokenController, Controlled {
     uint256 public startFundingTime;       
     uint256 public endFundingTime;
     
-    // 15% of tokens hard cap, at 1200 tokens per ETH
-    // 225,000,000*0.15 => 33,750,000 / 1200 => 28,125 ETH
-    uint256 constant public maximumFunding = 28125 ether;
-    uint256 constant public tokensPerEther = 1200; 
+    // 37% of tokens hard cap, at 2000 TNB per ETH
+    // 6,000,000,000*0.37 => 2,220,000,000 / 2000 => 1,110,000 ETH
+    uint256 constant public maximumFunding = 1110000 ether;
+    uint256 public tokensPerEther = 2000; 
     uint256 constant public maxGasPrice = 50000000000;
     
     // antispam
@@ -27,18 +27,21 @@ contract EarlyTokenSale is TokenController, Controlled {
     uint256 public totalCollected;
 
     // the tokencontract for the DataBrokerDAO
-    DataBrokerDaoToken public tokenContract;
+    TNBToken public tokenContract;
 
     // the funds end up in this address
     address public vaultAddress;
 
     bool public paused;
     bool public finalized = false;
+    bool public allowChange = true;
 
-    /// @param _startFundingTime The UNIX time that the EarlyTokenSale will be able to start receiving funds
-    /// @param _endFundingTime   The UNIX time that the EarlyTokenSale will stop being able to receive funds
-    /// @param _vaultAddress     The address that will store the donated funds
-    /// @param _tokenAddress     Address of the token contract this contract controls
+    /**
+     * @param _startFundingTime The UNIX time that the EarlyTokenSale will be able to start receiving funds
+     * @param _endFundingTime   The UNIX time that the EarlyTokenSale will stop being able to receive funds
+     * @param _vaultAddress     The address that will store the donated funds
+     * @param _tokenAddress     Address of the token contract this contract controls
+     */
     function EarlyTokenSale(
         uint _startFundingTime, 
         uint _endFundingTime, 
@@ -52,49 +55,60 @@ contract EarlyTokenSale is TokenController, Controlled {
 
         startFundingTime = _startFundingTime;
         endFundingTime = _endFundingTime;
-        tokenContract = DataBrokerDaoToken(_tokenAddress);
+        tokenContract = TNBToken(_tokenAddress);
         vaultAddress = _vaultAddress;
         paused = false;
     }
 
-    /// @dev The fallback function is called when ether is sent to the contract, it
-    /// simply calls `doPayment()` with the address that sent the ether as the
-    /// `_owner`. Payable is a required solidity modifier for functions to receive
-    /// ether, without this modifier functions will throw if ether is sent to them
+    /**
+     * @dev The fallback function is called when ether is sent to the contract, it simply calls `doPayment()` with the address that sent the ether as the `_owner`. Payable is a required solidity modifier for functions to receive ether, without this modifier functions will throw if ether is sent to them
+     */
     function () payable notPaused {
         doPayment(msg.sender);
     }
 
-    /// @notice `proxyPayment()` allows the caller to send ether to the EarlyTokenSale and
-    /// have the tokens created in an address of their choosing
-    /// @param _owner The address that will hold the newly created tokens
+    /**
+     * @notice `proxyPayment()` allows the caller to send ether to the EarlyTokenSale and have the tokens created in an address of their choosing
+     * @param _owner The address that will hold the newly created tokens
+     */
     function proxyPayment(address _owner) payable notPaused returns(bool success) {
         return doPayment(_owner);
     }
 
-    /// @notice Notifies the controller about a transfer, for this EarlyTokenSale all
-    /// transfers are allowed by default and no extra notifications are needed
-    /// @param _from The origin of the transfer
-    /// @param _to The destination of the transfer
-    /// @param _amount The amount of the transfer
-    /// @return False if the controller does not authorize the transfer
+    /**
+    * @notice Notifies the controller about a transfer, for this EarlyTokenSale all transfers are allowed by default and no extra notifications are needed
+    * @param _from The origin of the transfer
+    * @param _to The destination of the transfer
+    * @param _amount The amount of the transfer
+    * @return False if the controller does not authorize the transfer
+    */
     function onTransfer(address _from, address _to, uint _amount) returns(bool success) {
         if ( _from == vaultAddress ) {
             return true;
         }
+        address x;
+        uint y;
+        x = _to;
+        y = _amount;
         return false;
     }
 
-    /// @notice Notifies the controller about an approval, for this EarlyTokenSale all
-    /// approvals are allowed by default and no extra notifications are needed
-    /// @param _owner The address that calls `approve()`
-    /// @param _spender The spender in the `approve()` call
-    /// @param _amount The amount in the `approve()` call
-    /// @return False if the controller does not authorize the approval
+    /**
+     * @notice Notifies the controller about an approval, for this EarlyTokenSale all
+     * approvals are allowed by default and no extra notifications are needed
+     * @param _owner The address that calls `approve()`
+     * @param _spender The spender in the `approve()` call
+     * @param _amount The amount in the `approve()` call
+     * @return False if the controller does not authorize the approval
+     */
     function onApprove(address _owner, address _spender, uint _amount) returns(bool success) {
         if ( _owner == vaultAddress ) {
             return true;
         }
+        address x; 
+        uint y; 
+        x = _spender;
+        y = _amount;
         return false;
     }
 
@@ -137,6 +151,14 @@ contract EarlyTokenSale is TokenController, Controlled {
         tokenContract.changeController(_newController);
     }
 
+    /**
+     * 修改TNB兑换比率
+     */
+    function changeTokensPerEther(uint256 _newRate) onlyController {
+        require(allowChange);
+        tokensPerEther = _newRate;
+    }
+
     /// @dev Internal function to determine if an address is a contract
     /// @param _addr The address being queried
     /// @return True if `_addr` is a contract
@@ -164,6 +186,7 @@ contract EarlyTokenSale is TokenController, Controlled {
         }
 
         finalized = true;
+        allowChange = false;
     }
 
 //////////

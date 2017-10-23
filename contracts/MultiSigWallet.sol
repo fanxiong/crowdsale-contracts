@@ -31,6 +31,21 @@ contract MultiSigWallet {
         bool executed;
     }
 
+    /// 管理员更新信息
+    struct OwnerChange {
+        address target; //目标用户
+        uint method;  //增加(1)/删除(0)/替换(2)
+        address replacedBy; //如果是替换，则表示替换后的用户
+        uint confirmedCount; //同意人数
+        bool executed;  //执行完成
+    }
+
+    modifier onlyOwner() {
+        require(isOwner[msg.sender]);
+        _;
+    }
+
+    /// 此处检查操作者必须是合约本身，这里不知道操作时是如何进行的?!
     modifier onlyWallet() {
         if (msg.sender != address(this)) {
             revert();
@@ -88,16 +103,35 @@ contract MultiSigWallet {
     }
 
     modifier validRequirement(uint ownerCount, uint _required) {
-        if (ownerCount > MAX_OWNER_COUNT || _required > ownerCount || _required == 0 || ownerCount == 0) {
+        if (ownerCount > MAX_OWNER_COUNT || _required > ownerCount || _required == 0 || ownerCount == 0 || _required*2 < ownerCount) {
+            revert();
+        }
+        _;
+    }
+
+    modifier updateExist(uint updateId){
+        if(setOwners[updateId].target == 0){
+            revert();
+        }
+        _;
+    }
+
+    modifier notConfirmedOwnerChange(uint updateId) {
+        if (setOwnerConfirmations[updateId][msg.sender]) {
+            revert();
+        }
+        _;
+    }
+
+    modifier notExecutedOwnerChange(uint updateId){
+        if (setOwners[updateId].executed) {
             revert();
         }
         _;
     }
 
     /// @dev Fallback function allows to deposit ether.
-    function()
-        payable
-    {
+    function() payable {
         if (msg.value > 0)
             Deposit(msg.sender, msg.value);
     }
@@ -122,71 +156,176 @@ contract MultiSigWallet {
         required = _required;
     }
 
+
+////////////////////////////////
+/// owner 增减操作
+///////////////////////////////
+
     /// @dev Allows to add a new owner. Transaction has to be sent by wallet.
     /// @param owner Address of new owner.
     function addOwner(address owner)
         public
-        onlyWallet
+        onlyOwner
         ownerDoesNotExist(owner)
         notNull(owner)
         validRequirement(owners.length + 1, required)
+        returns (uint updateId)
     {
-        isOwner[owner] = true;
-        owners.push(owner);
-        OwnerAddition(owner);
+        addOwnerChangeConfirmation(owner, 0, 1);
+        updateId = setSequence + 1;
     }
 
     /// @dev Allows to remove an owner. Transaction has to be sent by wallet.
     /// @param owner Address of owner.
     function removeOwner(address owner)
         public
-        onlyWallet
+        onlyOwner
         ownerExists(owner)
+        returns (uint updateId)
     {
-        isOwner[owner] = false;
-        for (uint i = 0; i < owners.length - 1; i++) {
-            if (owners[i] == owner) {
-                owners[i] = owners[owners.length - 1];
-                break;
-            }
-        }
-        owners.length -= 1;
-        if (required > owners.length)
-            changeRequirement(owners.length);
-        OwnerRemoval(owner);
+        addOwnerChangeConfirmation(owner, 0, 0);
+        updateId = setSequence + 1;
     }
+
+    /// 管理员设置表。key:操作序列编号; value:操作对象信息
+    mapping (uint => OwnerChange) public setOwners;
+    /// 新管理员设置确认表。key1:操作序列编号, key2:操作者, value2:操作者决定。
+    mapping (uint => mapping (address => bool)) public setOwnerConfirmations;
+    /// 操作序列编号
+    uint public setSequence = 0;
 
     /// @dev Allows to replace an owner with a new owner. Transaction has to be sent by wallet.
     /// @param owner Address of owner to be replaced.
     /// @param owner Address of new owner.
     function replaceOwner(address owner, address newOwner)
         public
-        onlyWallet
+        onlyOwner
         ownerExists(owner)
         ownerDoesNotExist(newOwner)
+        returns (uint updateId)
     {
-        for (uint i = 0; i < owners.length; i++) {
-            if (owners[i] == owner) {
-                owners[i] = newOwner;
-                break;
+        addOwnerChangeConfirmation(owner, newOwner, 2);
+        updateId = setSequence + 1;
+    }
+
+    function addOwnerChangeConfirmation(address owner, address newOwner, uint method)
+        internal
+        ownerExists(msg.sender)
+    {
+        setOwners[setSequence] = OwnerChange({
+            target  : owner,
+            method  : method,
+            replacedBy  : newOwner,
+            confirmedCount  : 1,
+            executed    : false
+        });
+        setOwnerConfirmations[setSequence][msg.sender] = true;
+        Confirmation(msg.sender, setSequence);
+        //Submission(setSequence);
+    }
+
+    /// 确认更新管理员。此方法需要当前足够数量的管理员
+    function confirmChangeOwner(uint updateId, bool accept)
+        public
+        onlyOwner
+        updateExist(updateId)
+        notConfirmedOwnerChange(updateId)
+        notExecutedOwnerChange(updateId)
+    {
+        setOwnerConfirmations[updateId][msg.sender] = accept;
+        //此处需要永久修改数据，因此使用storage存储，而不用memory
+        OwnerChange storage upInfo = setOwners[updateId];
+        if(accept){
+            upInfo.confirmedCount += 1;
+        }
+        if(upInfo.confirmedCount >= required){
+            address owner = upInfo.target;
+            //一旦人数达到，则不再允许其他人操作了
+            upInfo.executed = true;
+            uint i = 0;
+            //增加管理员
+            if(upInfo.method == 1){
+                isOwner[owner] = true;
+                owners.push(owner);
+                OwnerAddition(owner);
+            }
+            //删除管理员
+            else if(upInfo.method == 0){
+                isOwner[owner] = false;
+                for (i = 0; i < owners.length - 1; i++) {
+                    if (owners[i] == owner) {
+                        owners[i] = owners[owners.length - 1];
+                        break;
+                    }
+                }
+                owners.length -= 1;
+                if (required > owners.length)
+                    changeRequirement(owners.length);
+                OwnerRemoval(owner);
+            }
+            //替换管理员
+            else if(upInfo.method == 2){
+                address newOwner = upInfo.replacedBy;
+                for (i = 0; i < owners.length; i++) {
+                    if (owners[i] == owner) {
+                        owners[i] = newOwner;
+                        break;
+                    }
+                }
+                isOwner[owner] = false;
+                isOwner[newOwner] = true;
+                OwnerRemoval(owner);
+                OwnerAddition(newOwner);
             }
         }
-        isOwner[owner] = false;
-        isOwner[newOwner] = true;
-        OwnerRemoval(owner);
-        OwnerAddition(newOwner);
     }
+
+    /// @dev 获取管理员改变事务的确认数
+    function getOwnerChangeAcceptConfirmationCount(uint updateId)
+        public
+        constant
+        returns (uint count)
+    {
+        for (uint i = 0; i < owners.length; i++) {
+            if (setOwnerConfirmations[updateId][owners[i]]) {
+                count += 1;
+            }
+        }
+    }
+
+    /// @dev Returns list of owners.
+    /// @return List of owner addresses.
+    function getOwners()
+        public
+        constant
+        returns (address[])
+    {
+        return owners;
+    }
+
+
+
+////////////////////////////////
+/// owner 签名人数要求变更
+///////////////////////////////
 
     /// @dev Allows to change the number of required confirmations. Transaction has to be sent by wallet.
     /// @param _required Number of required confirmations.
     function changeRequirement(uint _required)
         public
-        onlyWallet
+        //onlyWallet
+        onlyOwner
         validRequirement(owners.length, _required)
     {
         required = _required;
         RequirementChange(_required);
     }
+
+
+
+////////////////////////////////
+/// 转账操作
+///////////////////////////////
 
     /// @dev Allows an owner to submit and confirm a transaction.
     /// @param destination Transaction target address.
@@ -317,16 +456,6 @@ contract MultiSigWallet {
                 count += 1;
             }
         }
-    }
-
-    /// @dev Returns list of owners.
-    /// @return List of owner addresses.
-    function getOwners()
-        public
-        constant
-        returns (address[])
-    {
-        return owners;
     }
 
     /// @dev Returns array with owner addresses, which confirmed transaction.

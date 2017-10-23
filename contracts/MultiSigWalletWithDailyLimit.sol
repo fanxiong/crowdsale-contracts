@@ -37,7 +37,7 @@ contract MultiSigWalletWithDailyLimit is MultiSigWallet {
     /// @param _dailyLimit Amount in wei.
     function changeDailyLimit(uint _dailyLimit)
         public
-        onlyWallet
+        onlyOwner
     {
         dailyLimit = _dailyLimit;
         DailyLimitChange(_dailyLimit);
@@ -51,19 +51,19 @@ contract MultiSigWalletWithDailyLimit is MultiSigWallet {
         confirmed(transactionId, msg.sender)
         notExecuted(transactionId)
     {
-        Transaction tx = transactions[transactionId];
+        Transaction storage _tx = transactions[transactionId];
         bool _confirmed = isConfirmed(transactionId);
-        if (_confirmed || tx.data.length == 0 && isUnderLimit(tx.value)) {
-            tx.executed = true;
+        if (_confirmed || _tx.data.length == 0 && isUnderLimit(_tx.value)) {
+            _tx.executed = true;
             if (!_confirmed)
-                spentToday += tx.value;
-            if (tx.destination.call.value(tx.value)(tx.data))
+                spentToday += _tx.value;
+            if (_tx.destination.call.value(_tx.value)(_tx.data))
                 Execution(transactionId);
             else {
                 ExecutionFailure(transactionId);
-                tx.executed = false;
+                _tx.executed = false;
                 if (!_confirmed)
-                    spentToday -= tx.value;
+                    spentToday -= _tx.value;
             }
         }
     }
