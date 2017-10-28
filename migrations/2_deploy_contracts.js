@@ -1,9 +1,7 @@
 const Promise = require('bluebird');
 
 const EarlyTokenSale = artifacts.require('EarlyTokenSale');
-const MultiSigWalletWithDailyLimit = artifacts.require(
-  'MultiSigWalletWithDailyLimit'
-);
+const MultiSigWalletWithDailyLimit = artifacts.require('MultiSigWalletWithDailyLimit');
 const DataBrokerDaoToken = artifacts.require('DataBrokerDaoToken');
 
 async function performMigration(deployer, network) {
@@ -11,10 +9,10 @@ async function performMigration(deployer, network) {
   await deployer.deploy(
     MultiSigWalletWithDailyLimit,
     [
-      '0xce4c68a6347e78fb853ed14e2bb2910cabfe00a7', // Roderik
-      '0x423d8ed622ef2b48fa05629e1314812f66c5e80f', // Roderik 2, will be removed from the wallet after testing
-      '0xd62c96cd87dae2933cf2b7fafbcb757a6c84ad99', // Matthew
-      '0x5a7088e57a21d581c95930ce4b3dbb9ab097b23e', // Jonathan
+      '0xce4c68a6347e78fb853ed14e2bb2910cabfe00a7', // 1st account
+      '0x423d8ed622ef2b48fa05629e1314812f66c5e80f', // 2nd account, will be removed from the wallet after testing
+      '0xd62c96cd87dae2933cf2b7fafbcb757a6c84ad99', // 3rd account
+      '0x5a7088e57a21d581c95930ce4b3dbb9ab097b23e', // 4th account
     ],
     2,
     web3.toWei(1000, 'ether')

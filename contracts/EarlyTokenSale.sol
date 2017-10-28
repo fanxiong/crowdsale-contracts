@@ -21,7 +21,8 @@ contract EarlyTokenSale is TokenController, Controlled {
     
     // antispam
     uint256 constant public maxCallFrequency = 100;
-    mapping (address => uint256) public lastCallBlock; 
+    mapping (address => uint256) public lastCallBlock;
+    mapping (address => bool) public whiteList;
 
     // total amount raised in wei
     uint256 public totalCollected;
@@ -66,6 +67,42 @@ contract EarlyTokenSale is TokenController, Controlled {
     function () payable notPaused {
         doPayment(msg.sender);
     }
+
+    /**
+     * check address in the whitelist
+     * @param user_address 用户地址
+     */
+     function beWhiteList(address user_address) returns (bool){
+        return whiteList[user_address];
+     }
+
+     /**
+      * add address to whitelist
+      * @param user_address 用户地址
+      */
+    function addOneToWhiteList(address user_address){
+        whiteList[user_address] = true;
+    }
+
+     /**
+      * add address to whitelist
+      * @param user_address 用户地址集
+      */
+    function addManyToWhiteList(address[] user_address){
+        uint idx = 0;
+        uint len = user_address.length;
+        for(; idx < len; idx++){
+            whiteList[user_address[idx]] = true;
+        }
+    }
+
+    /**
+     * remove address from whitelist
+     * @param user_address 用户地址
+     */
+     function removeFromWhiteList(address user_address){
+        whiteList[user_address] = false;
+     }
 
     /**
      * @notice `proxyPayment()` allows the caller to send ether to the EarlyTokenSale and have the tokens created in an address of their choosing
@@ -119,18 +156,23 @@ contract EarlyTokenSale is TokenController, Controlled {
     function doPayment(address _owner) internal returns(bool success) {
         require(tx.gasprice <= maxGasPrice);
 
+        /*
         // Antispam
         // do not allow contracts to game the system
         require(!isContract(msg.sender));
         // limit the amount of contributions to once per 100 blocks
         require(getBlockNumber().sub(lastCallBlock[msg.sender]) >= maxCallFrequency);
         lastCallBlock[msg.sender] = getBlockNumber();
+        */
 
         // First check that the EarlyTokenSale is allowed to receive this donation
-        if (msg.sender != controller) {
-            require(startFundingTime <= now);
+        if(msg.value*100 > 1 ether){
+            require(whiteList[msg.sender]);
+            if (msg.sender != controller) {
+                //require(startFundingTime <= now);
+            }
+            require(endFundingTime > now);
         }
-        require(endFundingTime > now);
         require(tokenContract.controller() != 0);
         require(msg.value > 0);
         require(totalCollected.add(msg.value) <= maximumFunding);

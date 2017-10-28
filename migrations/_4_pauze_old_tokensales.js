@@ -4,12 +4,12 @@ const EarlyTokenSale = artifacts.require('EarlyTokenSale');
 
 async function performMigration(deployer, network) {
   const oldOne = await EarlyTokenSale.at(
-    '0x8ee75377f49c71cd97fbfd6aeb9b7c36c572fd12'
+    '0x95aac955ef82742daff7e0e0cea0925297885c0b'
   );
   await oldOne.pauseContribution();
 
   const oldTwo = await EarlyTokenSale.at(
-    '0x0f006cd9d9fd0788e738aad04d76e6733438b1f5'
+    '0xaf0358651818f895db69098aa61d34be31030aad'
   );
   await oldTwo.pauseContribution();
 }

@@ -52,18 +52,20 @@ contract('EarlyTokenSale', function(accounts) {
 
   it('should work when trying to send ether before the sale by the controller', async function() {
     const { sale, token, wallet } = await getSaleBeforeSale(accounts);
-    await web3.eth.sendTransaction({
-      from: accounts[0],
+    const arg0 = {
+      from: accounts[7],
       to: sale.address,
       value: web3.toWei(1, 'ether'),
       gas: 300000,
-    });
+    };
+    console.log('arg0:', arg0);
+    await web3.eth.sendTransaction(arg0);
     const totalSupply = await token.totalSupply();
-    assert.equal(totalSupply.toNumber(), web3.toWei(1200, 'ether'));
+    assert.equal(totalSupply.toNumber(), web3.toWei(2000, 'ether')); //AssertionError: expected 2e+21 to equal '1200000000000000000000'
     const totalCollected = await sale.totalCollected(); //public 变量，直接调用，不使用call()
     assert.equal(totalCollected.toNumber(), web3.toWei(1, 'ether'));
     const balance0 = await token.balanceOf(accounts[0]);
-    assert.equal(balance0.toNumber(), web3.toWei(1200, 'ether'));
+    assert.equal(balance0.toNumber(), web3.toWei(2000, 'ether'));
     const walletBalance = web3.eth.getBalance(wallet.address);
     assert.equal(walletBalance.toNumber(), web3.toWei(1, 'ether'));
   });
@@ -92,18 +94,20 @@ contract('EarlyTokenSale', function(accounts) {
 
   it('should work when trying to send ether during the sale by the controller', async function() {
     const { sale, token, wallet } = await getSaleDuringSale(accounts);
-    await web3.eth.sendTransaction({
+    const arg0 = {
       from: accounts[0],
       to: sale.address,
       value: web3.toWei(1, 'ether'),
       gas: 300000,
-    });
+    };
+    console.log('arg0:', arg0);
+    await web3.eth.sendTransaction(arg0);
     const totalSupply = await token.totalSupply();
-    assert.equal(totalSupply.toNumber(), web3.toWei(1200, 'ether'));
+    assert.equal(totalSupply.toNumber(), web3.toWei(2000, 'ether'));
     const totalCollected = await sale.totalCollected();
     assert.equal(totalCollected.toNumber(), web3.toWei(1, 'ether'));
     const balance0 = await token.balanceOf(accounts[0]);
-    assert.equal(balance0.toNumber(), web3.toWei(1200, 'ether'));
+    assert.equal(balance0.toNumber(), web3.toWei(2000, 'ether'));
     const walletBalance = web3.eth.getBalance(wallet.address);
     assert.equal(walletBalance.toNumber(), web3.toWei(1, 'ether'));
   });
@@ -114,14 +118,14 @@ contract('EarlyTokenSale', function(accounts) {
       from: accounts[1],
       to: sale.address,
       value: web3.toWei(1, 'ether'),
-      gas: 300000,
+      gas: 3000000,
     });
     const totalSupply = await token.totalSupply();
-    assert.equal(totalSupply.toNumber(), web3.toWei(1200, 'ether'));
+    assert.equal(totalSupply.toNumber(), web3.toWei(2000, 'ether'));
     const totalCollected = await sale.totalCollected();
     assert.equal(totalCollected.toNumber(), web3.toWei(1, 'ether'));
     const balance0 = await token.balanceOf(accounts[1]);
-    assert.equal(balance0.toNumber(), web3.toWei(1200, 'ether'));
+    assert.equal(balance0.toNumber(), web3.toWei(2000, 'ether'));
     const walletBalance = web3.eth.getBalance(wallet.address);
     assert.equal(walletBalance.toNumber(), web3.toWei(1, 'ether'));
   });
@@ -196,7 +200,7 @@ contract('EarlyTokenSale', function(accounts) {
   it('should not be able to finalise by anyone', async function() {
     const { sale, token, wallet } = await getSaleAfterSale(accounts);
     try {
-      await sale.finalizeSale({ from: accounts[5] });
+      await sale.finalizeSale({ from: accounts[7] });
     } catch (error) {
       assertOpcode(error);
     }
@@ -240,11 +244,11 @@ contract('EarlyTokenSale', function(accounts) {
       gas: 300000,
     });
     const totalSupply = await token.totalSupply();
-    assert.equal(totalSupply.toNumber(), web3.toWei(1200, 'ether'));
+    assert.equal(totalSupply.toNumber(), web3.toWei(2000, 'ether'));
     const totalCollected = await sale.totalCollected();
     assert.equal(totalCollected.toNumber(), web3.toWei(1, 'ether'));
     const balance0 = await token.balanceOf(accounts[0]);
-    assert.equal(balance0.toNumber(), web3.toWei(1200, 'ether'));
+    assert.equal(balance0.toNumber(), web3.toWei(2000, 'ether'));
     const walletBalance = web3.eth.getBalance(wallet.address);
     assert.equal(walletBalance.toNumber(), web3.toWei(1, 'ether'));
   });

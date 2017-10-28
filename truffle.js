@@ -16,9 +16,9 @@ module.exports = {
     coverage: {
       host: 'localhost',
       network_id: '*',
-      port: 8555, // <-- Use port 8555
-      gas: 0xfffffffffff, // <-- Use this high gas value
-      gasPrice: 0x01, // <-- Use this low gas price
+      port: 8545, // <-- Use port 8555
+      gas: 3000000, // <-- Use this high gas value
+      gasPrice: 250000, // <-- Use this low gas price
     },
     rinkeby: {
       provider: new HDWalletProvider(mnemonic, 'https://rinkeby.infura.io/'),
