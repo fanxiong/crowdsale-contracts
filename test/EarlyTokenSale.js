@@ -1,5 +1,7 @@
 //*
 import {
+  getTokenBeforeSale,
+  getTokenDuringSale,
   getSaleBeforeSale,
   getSaleAfterSale,
   getSaleDuringSale,
@@ -50,27 +52,47 @@ const FailingMockToken = artifacts.require('FailingMockToken');
 contract('EarlyTokenSale', function(accounts) {
   blocktravel(100, accounts);
 
-  it('should work when trying to send ether before the sale by the controller', async function() {
+  it('should work when trying to send ether before the sale by anyone', async function() {
     const { sale, token, wallet } = await getSaleBeforeSale(accounts);
     const arg0 = {
-      from: accounts[7],
+      from: accounts[1],
       to: sale.address,
-      value: web3.toWei(1, 'ether'),
+      value: web3.toWei(0.001, 'ether'),
       gas: 300000,
     };
-    console.log('arg0:', arg0);
+    //console.log('arg0:', arg0);
     await web3.eth.sendTransaction(arg0);
     const totalSupply = await token.totalSupply();
-    assert.equal(totalSupply.toNumber(), web3.toWei(2000, 'ether')); //AssertionError: expected 2e+21 to equal '1200000000000000000000'
+    assert.equal(totalSupply.toNumber(), web3.toWei(2, 'ether')); //AssertionError: expected 2e+21 to equal '1200000000000000000000'
     const totalCollected = await sale.totalCollected(); //public 变量，直接调用，不使用call()
-    assert.equal(totalCollected.toNumber(), web3.toWei(1, 'ether'));
-    const balance0 = await token.balanceOf(accounts[0]);
-    assert.equal(balance0.toNumber(), web3.toWei(2000, 'ether'));
+    assert.equal(totalCollected.toNumber(), web3.toWei(0.001, 'ether')); //expected 1000000000000000 to equal '1000000000000000000'
+    const balance0 = await token.balanceOf(accounts[1]);
+    assert.equal(balance0.toNumber(), web3.toWei(2, 'ether'));
     const walletBalance = web3.eth.getBalance(wallet.address);
-    assert.equal(walletBalance.toNumber(), web3.toWei(1, 'ether'));
+    assert.equal(walletBalance.toNumber(), web3.toWei(0.001, 'ether'));
   });
 
-  it('should fail when trying to send ether before the sale', async function() {
+  it('should work when trying to send ether less than 1% eth before the sale by normal user(for validate and add to whitelist)', async function() {
+    const { sale, token, wallet } = await getSaleBeforeSale(accounts);
+    const arg0 = {
+      from: accounts[1],
+      to: sale.address,
+      value: web3.toWei(0.001, 'ether'),
+      gas: 300000,
+    };
+    //console.log('arg0:', arg0);
+    await web3.eth.sendTransaction(arg0);
+    const totalSupply = await token.totalSupply();
+    assert.equal(totalSupply.toNumber(), web3.toWei(2, 'ether'));
+    const totalCollected = await sale.totalCollected();
+    assert.equal(totalCollected.toNumber(), web3.toWei(0.001, 'ether'));
+    const balance7 = await token.balanceOf(accounts[1]);
+    assert.equal(balance7.toNumber(), web3.toWei(2, 'ether'));
+    const walletBalance = web3.eth.getBalance(wallet.address);
+    assert.equal(walletBalance.toNumber(), web3.toWei(0.001, 'ether'));
+  });
+
+  it('should fail when trying to send ether more than 1% eth before the sale', async function() {
     const { sale, token, wallet } = await getSaleBeforeSale(accounts);
     try {
       await web3.eth.sendTransaction({
@@ -86,48 +108,93 @@ contract('EarlyTokenSale', function(accounts) {
     assert.equal(totalSupply.toNumber(), 0);
     const totalCollected = await sale.totalCollected();
     assert.equal(totalCollected.toNumber(), 0);
-    const balance0 = await token.balanceOf(accounts[1]);
-    assert.equal(balance0.toNumber(), 0);
+    const balance1 = await token.balanceOf(accounts[1]);
+    assert.equal(balance1.toNumber(), 0);
     const walletBalance = web3.eth.getBalance(wallet.address);
     assert.equal(walletBalance.toNumber(), 0);
   });
 
-  it('should work when trying to send ether during the sale by the controller', async function() {
+  it('should fail when trying to send ether during the sale by someone did not validate, even the controller member(controller is contract)', async function() {
     const { sale, token, wallet } = await getSaleDuringSale(accounts);
+    /*
+    const controller = await sale.controller();
+    console.log('controller:', controller);
+    assert(controller, accounts[7]);
+    */
     const arg0 = {
-      from: accounts[0],
+      from: accounts[7],
       to: sale.address,
       value: web3.toWei(1, 'ether'),
       gas: 300000,
     };
-    console.log('arg0:', arg0);
-    await web3.eth.sendTransaction(arg0);
+    //console.log('arg0:', arg0);
+    try{
+      await web3.eth.sendTransaction(arg0);
+    }catch(error){
+      assertOpcode(error);
+    }
     const totalSupply = await token.totalSupply();
-    assert.equal(totalSupply.toNumber(), web3.toWei(2000, 'ether'));
+    assert.equal(totalSupply.toNumber(), web3.toWei(0, 'ether'));
     const totalCollected = await sale.totalCollected();
-    assert.equal(totalCollected.toNumber(), web3.toWei(1, 'ether'));
-    const balance0 = await token.balanceOf(accounts[0]);
-    assert.equal(balance0.toNumber(), web3.toWei(2000, 'ether'));
-    const walletBalance = web3.eth.getBalance(wallet.address);
-    assert.equal(walletBalance.toNumber(), web3.toWei(1, 'ether'));
+    assert.equal(totalCollected.toNumber(), web3.toWei(0, 'ether'));
+    const balance0 = await token.balanceOf(accounts[7]);
+    assert.equal(balance0.toNumber(), web3.toWei(0, 'ether'));
+    const walletBalance = web3.eth.getBalance(sale.address);
+    assert.equal(walletBalance.toNumber(), web3.toWei(0, 'ether'));
   });
 
-  it('should work when trying to send ether during the sale', async function() {
+  it('should fail when trying to send ether during the sale and user ouside of whitelist', async function() {
     const { sale, token, wallet } = await getSaleDuringSale(accounts);
-    await web3.eth.sendTransaction({
+    const arg0 = {
       from: accounts[1],
       to: sale.address,
       value: web3.toWei(1, 'ether'),
-      gas: 3000000,
-    });
+      gas: 300000,
+    };
+    //console.log('arg0:', arg0);
+    try {
+      await web3.eth.sendTransaction(arg0);
+    }catch (error){
+      assertOpcode(error);
+    }
     const totalSupply = await token.totalSupply();
-    assert.equal(totalSupply.toNumber(), web3.toWei(2000, 'ether'));
+    assert.equal(totalSupply.toNumber(), web3.toWei(0, 'ether'));
     const totalCollected = await sale.totalCollected();
-    assert.equal(totalCollected.toNumber(), web3.toWei(1, 'ether'));
+    assert.equal(totalCollected.toNumber(), web3.toWei(0, 'ether'));
     const balance0 = await token.balanceOf(accounts[1]);
-    assert.equal(balance0.toNumber(), web3.toWei(2000, 'ether'));
+    assert.equal(balance0.toNumber(), web3.toWei(0, 'ether'));
     const walletBalance = web3.eth.getBalance(wallet.address);
-    assert.equal(walletBalance.toNumber(), web3.toWei(1, 'ether'));
+    assert.equal(walletBalance.toNumber(), web3.toWei(0, 'ether'));
+  });
+
+  it('should work when trying to send ether during the sale and user inside whitelist', async function() {
+    const { sale, token, wallet } = await getSaleDuringSale(accounts);
+    //send a few eth for join whitelist
+    await web3.eth.sendTransaction({
+      from: accounts[1],
+      to: sale.address,
+      value: web3.toWei(0.001, 'ether'),
+      gas: 300000,
+    });
+    await sale.addOneToWhiteList(accounts[1]);
+    const inWhitelist = await sale.whiteList(accounts[1]);
+    assert.equal(inWhitelist, true);
+    const arg0 = {
+      from: accounts[1],
+      to: sale.address,
+      value: web3.toWei(1, 'ether'),
+      gas: 300000,
+    };
+    //console.log('arg0:', arg0);
+    await web3.eth.sendTransaction(arg0);
+    const totalSupply = await token.totalSupply();
+    assert.equal(totalSupply.toNumber(), web3.toWei(2002, 'ether'));
+    const totalCollected = await sale.totalCollected();
+    assert.equal(totalCollected.toNumber(), web3.toWei(1.001, 'ether'));
+    const balance0 = await token.balanceOf(accounts[1]);
+    assert.equal(balance0.toNumber(), web3.toWei(2002, 'ether'));
+    const walletBalance = web3.eth.getBalance(wallet.address);
+    assert.equal(walletBalance.toNumber(), web3.toWei(1.001, 'ether'));
   });
 
   it('should fail when trying to send ether after the sale', async function() {

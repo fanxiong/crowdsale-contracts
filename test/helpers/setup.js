@@ -4,6 +4,42 @@ const EarlyTokenSale = artifacts.require('EarlyTokenSale');
 const MultiSigWallet = artifacts.require('MultiSigWallet');
 const DataBrokerDaoToken = artifacts.require('DataBrokerDaoToken');
 
+export async function getTokenBeforeSale(accounts) {
+  const token = await DataBrokerDaoToken.new();
+  //const { wallet, token } = await sharedSetup(accounts);
+  const { timestamp } = web3.eth.getBlock('latest');
+  const sale = await EarlyTokenSale.new(
+    timestamp + 3600,
+    timestamp + 7200,
+    accounts[7],  //without multisign wallet, account[7] is controller
+    token.address
+  );
+  await token.changeController(accounts[7]);
+  return {
+    //wallet,
+    token,
+    sale,
+  };
+}
+
+export async function getTokenDuringSale(accounts) {
+  const token = await DataBrokerDaoToken.new();
+  //const { wallet, token } = await sharedSetup(accounts);
+  const { timestamp } = web3.eth.getBlock('latest');
+  const sale = await EarlyTokenSale.new(
+    timestamp - 3600,
+    timestamp + 3600,
+    accounts[7],  //without multisign wallet, account[7] is controller
+    token.address
+  );
+  await token.changeController(accounts[7]);
+  return {
+    //wallet,
+    token,
+    sale,
+  };
+}
+
 export async function getSaleBeforeSale(accounts) {
   const { wallet, token } = await sharedSetup(accounts);
   const { timestamp } = web3.eth.getBlock('latest');

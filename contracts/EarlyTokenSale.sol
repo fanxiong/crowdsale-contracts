@@ -166,14 +166,16 @@ contract EarlyTokenSale is TokenController, Controlled {
         */
 
         // First check that the EarlyTokenSale is allowed to receive this donation
-        if(msg.value*100 > 1 ether){
-            require(whiteList[msg.sender]);
-            if (msg.sender != controller) {
-                //require(startFundingTime <= now);
+        //TODO
+        if (msg.sender != controller) {
+            if(msg.value*100 > 1 ether){
+                require(startFundingTime <= now);
+                require(whiteList[msg.sender]);
             }
-            require(endFundingTime > now);
+            //if user purpose is validate his address, don't limited by startTime.
         }
-        require(tokenContract.controller() != 0);
+        require(endFundingTime > now);
+        //require(tokenContract.controller() != 0);
         require(msg.value > 0);
         require(totalCollected.add(msg.value) <= maximumFunding);
 
