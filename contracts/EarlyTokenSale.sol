@@ -13,10 +13,10 @@ contract EarlyTokenSale is TokenController, Controlled {
     uint256 public startFundingTime;       
     uint256 public endFundingTime;
     
-    // 37% of tokens hard cap, at 2000 TNB per ETH
-    // 6,000,000,000*0.37 => 2,220,000,000 / 2000 => 1,110,000 ETH
-    uint256 constant public maximumFunding = 1110000 ether;
-    uint256 public tokensPerEther = 2000; 
+    // 37% of tokens hard cap, at 20000 TNB per ETH
+    // 6,000,000,000*0.37 => 2,220,000,000 / 20000 => 1,110,000 ETH
+    uint256 constant public maximumFunding = 111000 ether;
+    uint256 public tokensPerEther = 20000; 
     uint256 constant public maxGasPrice = 50000000000;
     
     // antispam
@@ -80,7 +80,7 @@ contract EarlyTokenSale is TokenController, Controlled {
       * add address to whitelist
       * @param user_address 用户地址
       */
-    function addOneToWhiteList(address user_address){
+    function addOneToWhiteList(address user_address) onlyController {
         whiteList[user_address] = true;
     }
 
@@ -88,7 +88,7 @@ contract EarlyTokenSale is TokenController, Controlled {
       * add address to whitelist
       * @param user_address 用户地址集
       */
-    function addManyToWhiteList(address[] user_address){
+    function addManyToWhiteList(address[] user_address) onlyController {
         uint idx = 0;
         uint len = user_address.length;
         for(; idx < len; idx++){
@@ -100,7 +100,7 @@ contract EarlyTokenSale is TokenController, Controlled {
      * remove address from whitelist
      * @param user_address 用户地址
      */
-     function removeFromWhiteList(address user_address){
+     function removeFromWhiteList(address user_address) onlyController {
         whiteList[user_address] = false;
      }
 

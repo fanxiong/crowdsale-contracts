@@ -14,7 +14,7 @@ export async function getTokenBeforeSale(accounts) {
     accounts[7],  //without multisign wallet, account[7] is controller
     token.address
   );
-  await token.changeController(accounts[7]);
+  await token.changeController(sale.address);
   return {
     //wallet,
     token,
@@ -24,7 +24,6 @@ export async function getTokenBeforeSale(accounts) {
 
 export async function getTokenDuringSale(accounts) {
   const token = await DataBrokerDaoToken.new();
-  //const { wallet, token } = await sharedSetup(accounts);
   const { timestamp } = web3.eth.getBlock('latest');
   const sale = await EarlyTokenSale.new(
     timestamp - 3600,
@@ -32,9 +31,8 @@ export async function getTokenDuringSale(accounts) {
     accounts[7],  //without multisign wallet, account[7] is controller
     token.address
   );
-  await token.changeController(accounts[7]);
+  await token.changeController(sale.address);
   return {
-    //wallet,
     token,
     sale,
   };

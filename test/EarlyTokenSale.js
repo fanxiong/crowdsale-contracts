@@ -49,47 +49,51 @@ const FailingMockToken = artifacts.require('FailingMockToken');
 // Mnemonic:      melt object asset crash now another usual cup pool during mad powder
 // Base HD Path:  m/44'/60'/0'/0/{account_index}
 
+const tokensPerEther = 20000; 
+
 contract('EarlyTokenSale', function(accounts) {
   blocktravel(100, accounts);
 
   it('should work when trying to send ether before the sale by anyone', async function() {
+    const sendEther = 0.001;
     const { sale, token, wallet } = await getSaleBeforeSale(accounts);
     const arg0 = {
       from: accounts[1],
       to: sale.address,
-      value: web3.toWei(0.001, 'ether'),
+      value: web3.toWei(sendEther, 'ether'),
       gas: 300000,
     };
     //console.log('arg0:', arg0);
     await web3.eth.sendTransaction(arg0);
     const totalSupply = await token.totalSupply();
-    assert.equal(totalSupply.toNumber(), web3.toWei(2, 'ether')); //AssertionError: expected 2e+21 to equal '1200000000000000000000'
+    assert.equal(totalSupply.toNumber(), web3.toWei(tokensPerEther * sendEther, 'ether')); //AssertionError: expected 2e+21 to equal '1200000000000000000000'
     const totalCollected = await sale.totalCollected(); //public 变量，直接调用，不使用call()
-    assert.equal(totalCollected.toNumber(), web3.toWei(0.001, 'ether')); //expected 1000000000000000 to equal '1000000000000000000'
+    assert.equal(totalCollected.toNumber(), web3.toWei(sendEther, 'ether')); //expected 1000000000000000 to equal '1000000000000000000'
     const balance0 = await token.balanceOf(accounts[1]);
-    assert.equal(balance0.toNumber(), web3.toWei(2, 'ether'));
+    assert.equal(balance0.toNumber(), web3.toWei(tokensPerEther * sendEther, 'ether'));
     const walletBalance = web3.eth.getBalance(wallet.address);
-    assert.equal(walletBalance.toNumber(), web3.toWei(0.001, 'ether'));
+    assert.equal(walletBalance.toNumber(), web3.toWei(sendEther, 'ether'));
   });
 
   it('should work when trying to send ether less than 1% eth before the sale by normal user(for validate and add to whitelist)', async function() {
+    const sendEther = 0.001;
     const { sale, token, wallet } = await getSaleBeforeSale(accounts);
     const arg0 = {
       from: accounts[1],
       to: sale.address,
-      value: web3.toWei(0.001, 'ether'),
+      value: web3.toWei(sendEther, 'ether'),
       gas: 300000,
     };
     //console.log('arg0:', arg0);
     await web3.eth.sendTransaction(arg0);
     const totalSupply = await token.totalSupply();
-    assert.equal(totalSupply.toNumber(), web3.toWei(2, 'ether'));
+    assert.equal(totalSupply.toNumber(), web3.toWei(tokensPerEther * sendEther, 'ether'));
     const totalCollected = await sale.totalCollected();
-    assert.equal(totalCollected.toNumber(), web3.toWei(0.001, 'ether'));
+    assert.equal(totalCollected.toNumber(), web3.toWei(sendEther, 'ether'));
     const balance7 = await token.balanceOf(accounts[1]);
-    assert.equal(balance7.toNumber(), web3.toWei(2, 'ether'));
+    assert.equal(balance7.toNumber(), web3.toWei(tokensPerEther * sendEther, 'ether'));
     const walletBalance = web3.eth.getBalance(wallet.address);
-    assert.equal(walletBalance.toNumber(), web3.toWei(0.001, 'ether'));
+    assert.equal(walletBalance.toNumber(), web3.toWei(sendEther, 'ether'));
   });
 
   it('should fail when trying to send ether more than 1% eth before the sale', async function() {
@@ -168,12 +172,13 @@ contract('EarlyTokenSale', function(accounts) {
   });
 
   it('should work when trying to send ether during the sale and user inside whitelist', async function() {
+    const sendEther1 = 0.001, sendEther2 = 1;
     const { sale, token, wallet } = await getSaleDuringSale(accounts);
     //send a few eth for join whitelist
     await web3.eth.sendTransaction({
       from: accounts[1],
       to: sale.address,
-      value: web3.toWei(0.001, 'ether'),
+      value: web3.toWei(sendEther1, 'ether'),
       gas: 300000,
     });
     await sale.addOneToWhiteList(accounts[1]);
@@ -182,19 +187,19 @@ contract('EarlyTokenSale', function(accounts) {
     const arg0 = {
       from: accounts[1],
       to: sale.address,
-      value: web3.toWei(1, 'ether'),
+      value: web3.toWei(sendEther2, 'ether'),
       gas: 300000,
     };
     //console.log('arg0:', arg0);
     await web3.eth.sendTransaction(arg0);
     const totalSupply = await token.totalSupply();
-    assert.equal(totalSupply.toNumber(), web3.toWei(2002, 'ether'));
+    assert.equal(totalSupply.toNumber(), web3.toWei(sendEther1*tokensPerEther + sendEther2*tokensPerEther, 'ether')); //Don't use "(sendEther1+sendEther2) * tokensPerEther", that will be show as 20019999999999996000000
     const totalCollected = await sale.totalCollected();
-    assert.equal(totalCollected.toNumber(), web3.toWei(1.001, 'ether'));
+    assert.equal(totalCollected.toNumber(), web3.toWei(sendEther1 + sendEther2, 'ether'));
     const balance0 = await token.balanceOf(accounts[1]);
-    assert.equal(balance0.toNumber(), web3.toWei(2002, 'ether'));
+    assert.equal(balance0.toNumber(), web3.toWei(sendEther1*tokensPerEther + sendEther2*tokensPerEther, 'ether'));
     const walletBalance = web3.eth.getBalance(wallet.address);
-    assert.equal(walletBalance.toNumber(), web3.toWei(1.001, 'ether'));
+    assert.equal(walletBalance.toNumber(), web3.toWei(sendEther1+sendEther2, 'ether'));
   });
 
   it('should fail when trying to send ether after the sale', async function() {
@@ -301,23 +306,24 @@ contract('EarlyTokenSale', function(accounts) {
   });
 
   it('should work when trying to send ether when the sale is unpauzed', async function() {
+    const sendEther = 1;
     const { sale, token, wallet } = await getSaleDuringSale(accounts);
     await sale.pauseContribution();
     await sale.resumeContribution();
     await web3.eth.sendTransaction({
       from: accounts[0],
       to: sale.address,
-      value: web3.toWei(1, 'ether'),
+      value: web3.toWei(sendEther, 'ether'),
       gas: 300000,
     });
     const totalSupply = await token.totalSupply();
-    assert.equal(totalSupply.toNumber(), web3.toWei(2000, 'ether'));
+    assert.equal(totalSupply.toNumber(), web3.toWei(sendEther*tokensPerEther, 'ether'));
     const totalCollected = await sale.totalCollected();
-    assert.equal(totalCollected.toNumber(), web3.toWei(1, 'ether'));
+    assert.equal(totalCollected.toNumber(), web3.toWei(sendEther, 'ether'));
     const balance0 = await token.balanceOf(accounts[0]);
-    assert.equal(balance0.toNumber(), web3.toWei(2000, 'ether'));
+    assert.equal(balance0.toNumber(), web3.toWei(sendEther*tokensPerEther, 'ether'));
     const walletBalance = web3.eth.getBalance(wallet.address);
-    assert.equal(walletBalance.toNumber(), web3.toWei(1, 'ether'));
+    assert.equal(walletBalance.toNumber(), web3.toWei(sendEther, 'ether'));
   });
 
   it('should be able to get mistakenly sent ether', async function() {
