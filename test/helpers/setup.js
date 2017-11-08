@@ -38,6 +38,45 @@ export async function getTokenDuringSale(accounts) {
   };
 }
 
+
+////stage 1 preSale
+export async function getSaleBeforePreSale(accounts) {
+  const { wallet, token } = await sharedSetup(accounts);
+  const { timestamp } = web3.eth.getBlock('latest');
+  const sale = await EarlyTokenSale.new(
+    timestamp - 7200,
+    timestamp - 3600,
+    wallet.address,
+    token.address
+  );
+  await token.changeController(sale.address);
+  return {
+    wallet,
+    token,
+    sale,
+  };
+}
+
+export async function getSaleDuringPreSale(accounts) {
+  const { wallet, token } = await sharedSetup(accounts);
+  const { timestamp } = web3.eth.getBlock('latest');
+  const sale = await EarlyTokenSale.new(
+    timestamp - 3600,
+    timestamp + 3600,
+    wallet.address,
+    token.address
+  );
+  await token.changeController(sale.address);
+  return {
+    wallet,
+    token,
+    sale,
+  };
+}
+
+
+
+////// stage 2 ICO
 export async function getSaleBeforeSale(accounts) {
   const { wallet, token } = await sharedSetup(accounts);
   const { timestamp } = web3.eth.getBlock('latest');
@@ -90,6 +129,9 @@ export async function getSaleDuringSale(accounts) {
   };
 }
 
+
+
+////
 export async function sharedSetup(accounts) {
   const wallet = await MultiSigWallet.new(
     [

@@ -2,6 +2,8 @@
 import {
   getTokenBeforeSale,
   getTokenDuringSale,
+  getSaleBeforePreSale,
+  getSaleDuringPreSale,
   getSaleBeforeSale,
   getSaleAfterSale,
   getSaleDuringSale,
@@ -54,6 +56,7 @@ const tokensPerEther = 20000;
 contract('EarlyTokenSale', function(accounts) {
   blocktravel(100, accounts);
 
+/*
   it('should work when trying to send ether before the sale by anyone', async function() {
     const sendEther = 0.001;
     const { sale, token, wallet } = await getSaleBeforeSale(accounts);
@@ -120,11 +123,11 @@ contract('EarlyTokenSale', function(accounts) {
 
   it('should fail when trying to send ether during the sale by someone did not validate, even the controller member(controller is contract)', async function() {
     const { sale, token, wallet } = await getSaleDuringSale(accounts);
-    /*
+    /**
     const controller = await sale.controller();
     console.log('controller:', controller);
     assert(controller, accounts[7]);
-    */
+    ** /
     const arg0 = {
       from: accounts[7],
       to: sale.address,
@@ -380,6 +383,47 @@ contract('EarlyTokenSale', function(accounts) {
     const walletBalance = web3.eth.getBalance(wallet.address);
     assert.equal(walletBalance.toNumber(), 0);
   });
+*/
+
+  it('should work when trying to send ether before pre sale by someone in whitelist or not', async function() {
+    const sendEther1 = 999, sendEther2 = 2;
+    const { sale, token, wallet } = await getSaleDuringPreSale(accounts);
+    //send a few eth for join whitelist
+    await sale.setDailyInfo(0,90,1000);
+    await sale.addOneToWhiteList(accounts[0]);
+    const inWhitelist = await sale.whiteList(accounts[0]);
+    assert.equal(inWhitelist, true);
+    await web3.eth.sendTransaction({
+      from: accounts[0],
+      to: sale.address,
+      value: web3.toWei(sendEther1, 'ether'),
+      gas: 300000,
+    });
+    const balance0 = await token.balanceOf(accounts[0]);
+    assert.equal(balance0.toNumber(), web3.toWei(sendEther1*tokensPerEther*10/9, 'ether'));
+
+    //outside of whitelist should be recorde in waitingKYC
+    const arg0 = {
+      from: accounts[1],
+      to: sale.address,
+      value: web3.toWei(sendEther1, 'ether'),
+      gas: 300000,
+    };
+    //console.log('arg0:', arg0);
+    await web3.eth.sendTransaction(arg0);
+    //const totalSupply = await token.totalSupply();
+    //assert.equal(totalSupply.toNumber(), web3.toWei(sendEther1*tokensPerEther + sendEther2*tokensPerEther, 'ether')); //Don't use "(sendEther1+sendEther2) * tokensPerEther", that will be show as 20019999999999996000000
+    const totalCollected = await sale.totalCollected();
+    assert.equal(totalCollected.toNumber(), web3.toWei(sendEther1*2, 'ether'));
+    const balance1 = await token.balanceOf(accounts[1]);
+    assert.equal(balance1.toNumber(), 0);
+    const log = await sale.waitingKYC(accounts[1]);
+    const balanceW = log[1];  //map converted an array
+    assert.equal(balanceW.toNumber(), web3.toWei(sendEther1*tokensPerEther*10/9, 'ether'));
+    //const walletBalance = web3.eth.getBalance(wallet.address);
+    //assert.equal(walletBalance.toNumber(), web3.toWei(sendEther1+sendEther2, 'ether'));
+  });
+
 });
 //*/
 
