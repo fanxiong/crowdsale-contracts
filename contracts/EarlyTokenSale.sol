@@ -10,19 +10,29 @@ contract EarlyTokenSale is TokenController, Controlled {
     using SafeMath for uint256;
 
     // In UNIX time format - http://www.unixtimestamp.com/
-    uint256 public startFundingTime;       
+    uint256 public startFundingTime;
     uint256 public endFundingTime;
     
     // 37% of tokens hard cap, at 20000 TNB per ETH
     // 6,000,000,000*0.37 => 2,220,000,000 / 20000 => 1,110,000 ETH
-    uint256 constant public maximumFunding = 111000 ether;
-    uint256 public tokensPerEther = 20000; 
+    uint256 constant public maximumFunding = 66000 ether;
+    uint256 public tokensPerEther = 20000;
     uint256 constant public maxGasPrice = 50000000000;
+
+    uint256 constant oneDay = 86400;
     
     // antispam
     uint256 constant public maxCallFrequency = 100;
     mapping (address => uint256) public lastCallBlock;
     mapping (address => bool) public whiteList;
+    address[] public waitingKYCs; //users who waiting for KYC
+
+    struct BuyLog {
+        uint256 ethValue;
+        uint256 tnbValue;
+    }
+    //values (eth&tnb) of user that waiting for KYC
+    mapping (address => BuyLog) public waitingKYC;
 
     // total amount raised in wei
     uint256 public totalCollected;
@@ -36,6 +46,18 @@ contract EarlyTokenSale is TokenController, Controlled {
     bool public paused;
     bool public finalized = false;
     bool public allowChange = true;
+    bool private transfersEnabled = true;
+
+    struct DailyInfo {
+        uint discount;      //discount this day
+        uint256 dailyLimit; //limit this day
+        uint256 dayCollected; //ETH today collected
+    }
+    mapping (uint => DailyInfo) public daysM;
+
+    uint nextModTime;   //time of next modify
+    uint dayPass;       //days has passed. start from 0
+
 
     /**
      * @param _startFundingTime The UNIX time that the EarlyTokenSale will be able to start receiving funds
@@ -59,6 +81,71 @@ contract EarlyTokenSale is TokenController, Controlled {
         tokenContract = TNBToken(_tokenAddress);
         vaultAddress = _vaultAddress;
         paused = false;
+    }
+
+    function setDailyInfo(uint _dayPass, uint _discount, uint256 _limit) onlyController {
+        daysM[_dayPass].discount = _discount;
+        daysM[_dayPass].dailyLimit = _limit;
+        daysM[_dayPass].dayCollected = 0;
+    }
+
+    function setDailyInfos(uint _dayCount, uint[] _discount, uint256[] _limit) onlyController {
+        for(uint i=0; i< _dayCount; i++){
+            daysM[i] = DailyInfo(_discount[i], _limit[i], 0);
+        }
+    }
+
+    function getTodayInfo() internal returns (DailyInfo) {
+        uint todayTime = now;
+        if(todayTime > nextModTime){
+            dayPass = todayTime <= startFundingTime ? 0 : (todayTime - startFundingTime)/oneDay;
+            nextModTime = startFundingTime + (dayPass+1) * oneDay;
+        }
+        return daysM[dayPass];
+    }
+
+    function getAnydayInfo(uint _dayPass) returns (uint discount, uint256 dailyLimit, uint256 dayCollected) {
+        discount = daysM[_dayPass].discount;
+        dailyLimit = daysM[_dayPass].dailyLimit;
+        dayCollected = daysM[_dayPass].dayCollected;
+    }
+
+    function setTime(uint time1, uint time2) onlyController {
+        require(endFundingTime > now && startFundingTime < endFundingTime);
+        startFundingTime = time1;
+        endFundingTime = time2;
+    }
+
+    function saveWaitingKYC(address _sender, uint256 _value, uint256 _tnbValue) internal {
+        waitingKYCs.push(_sender);
+        waitingKYC[_sender] = BuyLog(_value, _tnbValue);
+    }
+
+    function sendTokenWhenPassKYC(address _user) onlyController {
+        uint len = waitingKYCs.length;
+        for(uint i = 0; i<len; i++){
+            if(waitingKYCs[i] == _user){
+                waitingKYCs[i] = 0;
+                return;
+            }
+        }
+        tokenContract.generateTokens(_user, waitingKYC[_user].tnbValue);
+        waitingKYC[_user].ethValue = 0;
+        waitingKYC[_user].tnbValue = 0;
+    }
+
+    function backEthWhenKYCFail(address _user) onlyController {
+        uint len = waitingKYCs.length;
+        for(uint i = 0; i<len; i++){
+            if(waitingKYCs[i] == _user){
+                waitingKYCs[i] = 0;
+                return;
+            }
+        }
+        //tokenContract.generateTokens(_owner, waitingKYC[_user]);
+        _user.transfer(waitingKYC[_user].ethValue);
+        waitingKYC[_user].ethValue = 0;
+        waitingKYC[_user].tnbValue = 0;
     }
 
     /**
@@ -120,9 +207,10 @@ contract EarlyTokenSale is TokenController, Controlled {
     * @return False if the controller does not authorize the transfer
     */
     function onTransfer(address _from, address _to, uint _amount) returns(bool success) {
-        if ( _from == vaultAddress ) {
+        if ( _from == vaultAddress || transfersEnabled) {
             return true;
         }
+        //just pass compile
         address x;
         uint y;
         x = _to;
@@ -167,10 +255,19 @@ contract EarlyTokenSale is TokenController, Controlled {
 
         // First check that the EarlyTokenSale is allowed to receive this donation
         //TODO
+        /*
         if (msg.sender != controller) {
             if(msg.value*100 > 1 ether){
                 require(startFundingTime <= now);
                 require(whiteList[msg.sender]);
+            }
+            //if user purpose is validate his address, don't limited by startTime.
+        }
+        */
+        if (msg.sender != controller) {
+            //pre sale
+            if(startFundingTime <= now){
+                require(msg.value >= 100 ether && msg.value <= 1000 ether);
             }
             //if user purpose is validate his address, don't limited by startTime.
         }
@@ -179,15 +276,23 @@ contract EarlyTokenSale is TokenController, Controlled {
         require(msg.value > 0);
         require(totalCollected.add(msg.value) <= maximumFunding);
 
+        DailyInfo memory todayInfo = getTodayInfo();
+        require(todayInfo.dayCollected < todayInfo.dailyLimit);
+
         // Track how much the EarlyTokenSale has collected
         totalCollected = totalCollected.add(msg.value);
+        todayInfo.dayCollected += msg.value;
 
         //Send the ether to the vault
         require(vaultAddress.send(msg.value));
 
+        uint256 tnbValue = tokensPerEther.mul(msg.value).mul(100).div(todayInfo.discount);
         // Creates an equal amount of tokens as ether sent. The new tokens are created in the `_owner` address
-        require(tokenContract.generateTokens(_owner, tokensPerEther.mul(msg.value)));
-        
+        if(whiteList[msg.sender]){
+            require(tokenContract.generateTokens(_owner, tnbValue));
+        }else{
+            saveWaitingKYC(msg.sender, msg.value, tnbValue);
+        }
         return true;
     }
 
@@ -201,6 +306,13 @@ contract EarlyTokenSale is TokenController, Controlled {
     function changeTokensPerEther(uint256 _newRate) onlyController {
         require(allowChange);
         tokensPerEther = _newRate;
+    }
+
+    /**
+     * 允许普通用户转账
+     */
+    function allowTransfersEnabled(bool _allow) onlyController {
+        transfersEnabled = _allow;
     }
 
     /// @dev Internal function to determine if an address is a contract
