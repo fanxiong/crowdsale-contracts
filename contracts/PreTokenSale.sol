@@ -1,5 +1,6 @@
 pragma solidity ^0.4.15;
 
+import "./DataBrokerDaoToken.sol";
 import "./SafeMath.sol";
 import "./interfaces/Controlled.sol";
 

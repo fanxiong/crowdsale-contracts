@@ -1,6 +1,6 @@
 const Promise = require('bluebird');
 
-const EarlyTokenSale = artifacts.require('EarlyTokenSale');
+const EarlyTokenSale = artifacts.require('PreTokenSale');
 const MultiSigWalletWithDailyLimit = artifacts.require('MultiSigWalletWithDailyLimit');
 const DataBrokerDaoToken = artifacts.require('DataBrokerDaoToken');
 

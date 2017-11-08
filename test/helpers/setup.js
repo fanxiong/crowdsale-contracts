@@ -1,5 +1,6 @@
 import { timetravel } from './timetravel';
 
+const PreTokenSale = artifacts.require('PreTokenSale');
 const EarlyTokenSale = artifacts.require('EarlyTokenSale');
 const MultiSigWallet = artifacts.require('MultiSigWallet');
 const DataBrokerDaoToken = artifacts.require('DataBrokerDaoToken');
@@ -33,6 +34,24 @@ export async function getTokenDuringSale(accounts) {
   );
   await token.changeController(sale.address);
   return {
+    token,
+    sale,
+  };
+}
+
+////stage 0 preSale
+export async function getPreSaleDuringPreSale(accounts) {
+  const { wallet, token } = await sharedSetup(accounts);
+  const { timestamp } = web3.eth.getBlock('latest');
+  const sale = await PreTokenSale.new(
+    timestamp - 3600,
+    timestamp + 3600,
+    wallet.address,
+    token.address
+  );
+  await token.changeController(sale.address);
+  return {
+    wallet,
     token,
     sale,
   };
