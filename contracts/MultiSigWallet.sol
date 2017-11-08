@@ -24,6 +24,8 @@ contract MultiSigWallet {
     uint public required;
     uint public transactionCount;
 
+    bool internal initialed = false;
+
     struct Transaction {
         address destination;
         uint value;
@@ -146,6 +148,7 @@ contract MultiSigWallet {
         public
         validRequirement(_owners.length, _required)
     {
+        require(!initialed);
         for (uint i = 0; i < _owners.length; i++) {
             if (isOwner[_owners[i]] || _owners[i] == 0) {
                 revert();
@@ -154,6 +157,7 @@ contract MultiSigWallet {
         }
         owners = _owners;
         required = _required;
+        initialed = true;
     }
 
 

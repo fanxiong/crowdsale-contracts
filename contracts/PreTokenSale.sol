@@ -1,6 +1,5 @@
 pragma solidity ^0.4.15;
 
-import "./DataBrokerDaoToken.sol";
 import "./SafeMath.sol";
 import "./interfaces/Controlled.sol";
 
@@ -13,7 +12,7 @@ contract PreTokenSale is TokenController, Controlled {
     uint256 public endFundingTime;
     
     uint256 constant public maximumFunding = 20000 ether;
-    uint256 public tokensPerEther = 22200;
+    uint256 public tokensPerEther = 22222;
     uint256 constant public maxGasPrice = 50000000000;
     uint256 constant oneDay = 86400;
     uint256 public totalCollected = 0;
@@ -23,6 +22,11 @@ contract PreTokenSale is TokenController, Controlled {
     bool public allowChange = true;
     bool private transfersEnabled = true;
     address private vaultAddress;
+
+    bool private initialed = false;
+
+    event Payment(address indexed _sender, uint256 _ethAmount, uint256 _tokenAmount);
+
     /**
      * @param _startFundingTime The UNIX time that the PreTokenSale will be able to start receiving funds
      * @param _endFundingTime   The UNIX time that the PreTokenSale will stop being able to receive funds
@@ -39,11 +43,13 @@ contract PreTokenSale is TokenController, Controlled {
         require(_endFundingTime >= _startFundingTime);
         require(_vaultAddress != 0);
         require(_tokenAddress != 0);
+        require(!initialed);
 
         startFundingTime = _startFundingTime;
         endFundingTime = _endFundingTime;
         vaultAddress = _vaultAddress;
         paused = false;
+        initialed = true;
     }
 
 
@@ -103,8 +109,6 @@ contract PreTokenSale is TokenController, Controlled {
     ///  `_owner` assuming the PreTokenSale is still accepting funds
     /// @param _owner The address that will hold the newly created tokens
     function doPayment(address _owner) internal returns(bool success) {
-        require(tx.gasprice <= maxGasPrice);
-
         require(msg.value >= 100 ether && msg.value <= 1000 ether);
         require(endFundingTime > now);
 
@@ -117,6 +121,8 @@ contract PreTokenSale is TokenController, Controlled {
         
         uint256 tnbValue = tokensPerEther.mul(msg.value);
         // Creates an equal amount of tokens as ether sent. The new tokens are created in the `_owner` address
+        require(tokenContract.generateTokens(_owner, tnbValue));
+        Payment(_owner, msg.value, tnbValue);
         return true;
     }
 
@@ -160,22 +166,14 @@ contract PreTokenSale is TokenController, Controlled {
         require(now > endFundingTime || totalCollected >= maximumFunding);
         require(!finalized);
 
-        uint256 reservedTokens = 225000000 * 0.35 * 10**18;      
-        if (!tokenContract.generateTokens(vaultAddress, reservedTokens)) {
+        //20000 TNB/ETH and 90 percent discount
+        uint256 totalTokens = totalCollected * tokensPerEther * 10**18;
+        if (!tokenContract.generateTokens(vaultAddress, totalTokens)) {
             revert();
         }
 
         finalized = true;
         allowChange = false;
-    }
-
-//////////
-// Testing specific methods
-//////////
-
-    /// @notice This function is overridden by the tests.
-    function getBlockNumber() internal constant returns (uint256) {
-        return block.number;
     }
 
 //////////
