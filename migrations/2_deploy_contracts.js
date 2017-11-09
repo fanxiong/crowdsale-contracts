@@ -1,6 +1,6 @@
 const Promise = require('bluebird');
 
-const EarlyTokenSale = artifacts.require('PreTokenSale');
+const EarlyTokenSale = artifacts.require('TokenCrowdsale');
 const MultiSigWalletWithDailyLimit = artifacts.require('MultiSigWalletWithDailyLimit');
 const DataBrokerDaoToken = artifacts.require('DataBrokerDaoToken');
 
@@ -46,7 +46,7 @@ async function performMigration(deployer, network) {
   // Set the controller of the token to the early token sale
   const DeployedDataBrokerDaoToken = await DataBrokerDaoToken.deployed();
   DeployedDataBrokerDaoToken.changeController(EarlyTokenSale.address);
-  console.info("EarlyTokenSale.address 1::", EarlyTokenSale.address)
+  console.info("TokenCrowdsale.address 1::", EarlyTokenSale.address)
 }
 
 module.exports = function(deployer, network) {

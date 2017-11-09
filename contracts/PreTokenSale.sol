@@ -49,6 +49,7 @@ contract PreTokenSale is TokenController, Controlled {
         startFundingTime = _startFundingTime;
         endFundingTime = _endFundingTime;
         vaultAddress = _vaultAddress;
+        tokenContract = TNBToken(_tokenAddress);
         paused = false;
         initialed = true;
     }
@@ -110,7 +111,7 @@ contract PreTokenSale is TokenController, Controlled {
     ///  `_owner` assuming the PreTokenSale is still accepting funds
     /// @param _owner The address that will hold the newly created tokens
     function doPayment(address _owner) internal returns(bool success) {
-        require(msg.value >= 100 ether && msg.value <= 1000 ether);
+        require(msg.value >= 0.01 ether && msg.value <= 0.1 ether);
         require(endFundingTime > now);
 
         // Track how much the PreTokenSale has collected

@@ -44,10 +44,9 @@ contract TokenCrowdsale is TokenController, Controlled {
      * @param user_address array of user address
      */
     function addManyToWhiteList(address[] user_address) onlyController {
-        uint idx = 0;
         uint  len = user_address.length;
         require(len < 90);
-        for(; idx < len; idx++){
+        for(uint idx = 0; idx < len; idx++){
             whiteList[user_address[idx]] = true;
         }
     }
@@ -77,6 +76,7 @@ contract TokenCrowdsale is TokenController, Controlled {
         startFundingTime = _startFundingTime;
         endFundingTime = _endFundingTime;
         vaultAddress = _vaultAddress;
+        tokenContract = TNBToken(_tokenAddress);
         paused = false;
         initialed = true;
     }
@@ -238,6 +238,10 @@ contract TokenCrowdsale is TokenController, Controlled {
     /// @notice Resumes the contribution
     function resumeContribution() onlyController {
         paused = false;
+    }
+
+    function changeNeedWhiteList(bool _need) onlyController {
+        needWhiteListFirst = _need;
     }
 
     modifier notPaused() {
