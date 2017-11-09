@@ -9,7 +9,7 @@ var mnemonic =
 module.exports = {
   networks: {
     development: {
-      host: 'localhost',
+      host: '192.168.1.111',
       port: 8546,
       network_id: '*',
     },

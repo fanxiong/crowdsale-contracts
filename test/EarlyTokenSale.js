@@ -2,6 +2,7 @@
 import {
   getTokenBeforeSale,
   getTokenDuringSale,
+  getPreSaleDuringPreSale,
   getSaleBeforePreSale,
   getSaleDuringPreSale,
   getSaleBeforeSale,
@@ -12,6 +13,7 @@ import { assertOpcode } from './helpers/assertOpcode';
 import { blocktravel } from './helpers/timetravel';
 
 const TNBToken = artifacts.require('TNBToken');
+const PreTokenSale = artifacts.require('PreTokenSale');
 const EarlyTokenSale = artifacts.require('EarlyTokenSale');
 const MultiSigWallet = artifacts.require('MultiSigWallet');
 const DataBrokerDaoToken = artifacts.require('DataBrokerDaoToken');
@@ -53,7 +55,7 @@ const FailingMockToken = artifacts.require('FailingMockToken');
 
 const tokensPerEther = 20000; 
 
-contract('EarlyTokenSale', function(accounts) {
+contract('PreTokenSale', function(accounts) {
   blocktravel(100, accounts);
 
 /*
@@ -123,7 +125,7 @@ contract('EarlyTokenSale', function(accounts) {
 
   it('should fail when trying to send ether during the sale by someone did not validate, even the controller member(controller is contract)', async function() {
     const { sale, token, wallet } = await getSaleDuringSale(accounts);
-    /**
+    / **
     const controller = await sale.controller();
     console.log('controller:', controller);
     assert(controller, accounts[7]);
@@ -383,7 +385,6 @@ contract('EarlyTokenSale', function(accounts) {
     const walletBalance = web3.eth.getBalance(wallet.address);
     assert.equal(walletBalance.toNumber(), 0);
   });
-*/
 
   it('should work when trying to send ether before pre sale by someone in whitelist or not', async function() {
     const sendEther1 = 999, sendEther2 = 2;
@@ -401,6 +402,46 @@ contract('EarlyTokenSale', function(accounts) {
     });
     const balance0 = await token.balanceOf(accounts[0]);
     assert.equal(balance0.toNumber(), web3.toWei(sendEther1*tokensPerEther*10/9, 'ether'));
+
+    //outside of whitelist should be recorde in waitingKYC
+    const arg0 = {
+      from: accounts[1],
+      to: sale.address,
+      value: web3.toWei(sendEther1, 'ether'),
+      gas: 300000,
+    };
+    //console.log('arg0:', arg0);
+    await web3.eth.sendTransaction(arg0);
+    //const totalSupply = await token.totalSupply();
+    //assert.equal(totalSupply.toNumber(), web3.toWei(sendEther1*tokensPerEther + sendEther2*tokensPerEther, 'ether')); //Don't use "(sendEther1+sendEther2) * tokensPerEther", that will be show as 20019999999999996000000
+    const totalCollected = await sale.totalCollected();
+    assert.equal(totalCollected.toNumber(), web3.toWei(sendEther1*2, 'ether'));
+    const balance1 = await token.balanceOf(accounts[1]);
+    assert.equal(balance1.toNumber(), 0);
+    const log = await sale.waitingKYC(accounts[1]);
+    const balanceW = log[1];  //map converted an array
+    assert.equal(balanceW.toNumber(), web3.toWei(sendEther1*tokensPerEther*10/9, 'ether'));
+    //const walletBalance = web3.eth.getBalance(wallet.address);
+    //assert.equal(walletBalance.toNumber(), web3.toWei(sendEther1+sendEther2, 'ether'));
+  });
+*/
+
+  it('should work when trying to send ether pre sale by someone', async function() {
+    const sendEther1 = 99, sendEther2 = 2, tokensPerEther = 22222;
+    const { sale, token, wallet } = await getPreSaleDuringPreSale(accounts);
+    //send a few eth for join whitelist
+    await web3.eth.sendTransaction({
+      from: accounts[0],
+      to: sale.address,
+      value: web3.toWei(sendEther1, 'ether'),
+      gas: 300000,
+    });
+    const balance0 = await token.balanceOf(accounts[0]);
+    assert.equal(balance0.toNumber(), web3.toWei(sendEther1*tokensPerEther, 'ether'));
+
+    const balanceWallet = await web3.eth.getBalance(wallet.address);
+    assert.equal(balanceWallet.toNumber(), web3.toWei(sendEther1, 'ether'));
+    return;
 
     //outside of whitelist should be recorde in waitingKYC
     const arg0 = {
