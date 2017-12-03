@@ -17,13 +17,13 @@ contract Controlled {
         _; 
     }
 
-    bool private initialed = false;
+    //block for check//bool private initialed = false;
     address public controller;
 
     function Controlled() {
-      require(!initialed);
+      //block for check//require(!initialed);
       controller = msg.sender;
-      initialed = true;
+      //block for check//initialed = true;
     }
 
     /// @notice Changes the controller of the contract
